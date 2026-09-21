@@ -1,0 +1,36 @@
+<%- include('../partials/header') %>
+<div class="flex justify-between items-center mb-4">
+  <h1 class="text-xl font-bold">درخواست‌های بازدید</h1>
+  <a href="/admin" class="text-sm text-gray-500">← داشبورد</a>
+</div>
+<form class="mb-4 flex gap-2 text-sm">
+  <select name="status" class="border rounded px-3 py-2" onchange="this.form.submit()">
+    <option value="">همه</option>
+    <option value="pending" <%= status==='pending'?'selected':'' %>>pending</option>
+    <option value="approved" <%= status==='approved'?'selected':'' %>>approved</option>
+    <option value="scheduled" <%= status==='scheduled'?'selected':'' %>>scheduled</option>
+    <option value="rejected" <%= status==='rejected'?'selected':'' %>>rejected</option>
+    <option value="done" <%= status==='done'?'selected':'' %>>done</option>
+  </select>
+</form>
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100"><tr>
+      <th class="p-3 text-right">کد</th><th class="p-3 text-right">ملک</th><th class="p-3 text-right">نام</th>
+      <th class="p-3 text-right">از تاریخ</th><th class="p-3 text-right">نفرات</th><th class="p-3 text-right">وضعیت</th>
+    </tr></thead>
+    <tbody>
+      <% requests.forEach(r => { %>
+        <tr class="border-t">
+          <td class="p-3 font-mono"><a class="text-emerald-700" href="/admin/requests/<%= r.id %>"><%= r.request_code %></a></td>
+          <td class="p-3"><%= r.title %></td>
+          <td class="p-3"><%= r.full_name %></td>
+          <td class="p-3"><%= r.need_from %></td>
+          <td class="p-3"><%= r.people_count %></td>
+          <td class="p-3"><%= r.status %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

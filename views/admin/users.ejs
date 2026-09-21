@@ -1,0 +1,22 @@
+<%- include('../partials/header') %>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+  <h1 style="margin:0">کاربران / کد مشتری</h1>
+  <a class="btn btn-ghost" href="/admin">داشبورد</a>
+</div>
+<div class="table-wrap panel" style="padding:0;margin-top:1rem">
+  <table>
+    <thead><tr><th>کد</th><th>نام</th><th>تلفن ارمنی</th><th>واتساپ</th><th>تاریخ</th></tr></thead>
+    <tbody>
+      <% users.forEach(u => { %>
+        <tr>
+          <td><b style="color:#34d399"><%= u.user_code %></b></td>
+          <td><%= u.full_name %></td>
+          <td><%= u.phone_am %></td>
+          <td><%= u.whatsapp %></td>
+          <td class="muted"><%= u.created_at %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

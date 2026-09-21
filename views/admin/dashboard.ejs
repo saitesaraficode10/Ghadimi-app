@@ -1,0 +1,32 @@
+<%- include('../partials/header') %>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+  <h1 style="margin:0">پنل ادمین</h1>
+  <a class="btn btn-ghost" href="/admin/logout">خروج</a>
+</div>
+<div class="stats" style="margin-top:1rem">
+  <div class="stat"><b><%= stats.properties %></b><span class="muted">کل ملک</span></div>
+  <div class="stat"><b style="color:#34d399"><%= stats.available %></b><span class="muted">آزاد</span></div>
+  <div class="stat"><b style="color:#fbbf24"><%= stats.pending %></b><span class="muted">درخواست باز</span></div>
+</div>
+<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+  <a class="btn btn-primary" href="/admin/properties">مدیریت ملک‌ها</a>
+  <a class="btn btn-ghost" href="/admin/requests">درخواست‌های بازدید</a>
+  <a class="btn btn-ghost" href="/admin/users">کاربران</a>
+  <a class="btn btn-ghost" href="/admin/settings">تنظیمات / واتساپ</a>
+</div>
+<div class="table-wrap panel" style="padding:0">
+  <table>
+    <thead><tr><th>کد</th><th>ملک</th><th>نام</th><th>وضعیت</th></tr></thead>
+    <tbody>
+      <% recent.forEach(r => { %>
+        <tr>
+          <td><a href="/admin/requests/<%= r.id %>" style="color:#34d399"><%= r.request_code %></a></td>
+          <td><%= r.title %></td>
+          <td><%= r.full_name %></td>
+          <td><%= r.status %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

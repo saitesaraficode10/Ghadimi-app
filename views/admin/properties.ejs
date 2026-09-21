@@ -1,0 +1,33 @@
+<%- include('../partials/header') %>
+<div class="flex justify-between items-center mb-4">
+  <h1 class="text-xl font-bold">مدیریت ملک‌ها</h1>
+  <a href="/admin/properties/new" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm">+ افزودن ملک</a>
+</div>
+<a href="/admin" class="text-sm text-gray-500 mb-4 inline-block">← داشبورد</a>
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100"><tr>
+      <th class="p-3 text-right">کد</th><th class="p-3 text-right">عنوان</th><th class="p-3 text-right">قیمت</th>
+      <th class="p-3 text-right">وضعیت</th><th class="p-3 text-right">آزاد از</th><th class="p-3 text-right">عملیات</th>
+    </tr></thead>
+    <tbody>
+      <% properties.forEach(p => { %>
+        <tr class="border-t">
+          <td class="p-3 font-mono"><%= p.code %></td>
+          <td class="p-3"><%= p.title %></td>
+          <td class="p-3"><%= Number(p.price_monthly).toLocaleString('fa-IR') %></td>
+          <td class="p-3"><%= statusLabel(p.status) %></td>
+          <td class="p-3"><%= p.available_from || '—' %></td>
+          <td class="p-3 flex gap-2">
+            <a href="/admin/properties/<%= p.id %>/edit" class="text-blue-600">ویرایش</a>
+            <form method="POST" action="/admin/properties/<%= p.id %>
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">/delete" onsubmit="return confirm('حذف شود؟')">
+              <button class="text-red-600">حذف</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<a href="/admin/requests" class="text-sm text-gray-500 mb-4 inline-block">← لیست درخواست‌ها</a>
+<div class="grid md:grid-cols-2 gap-6">
+  <div class="bg-white rounded-xl shadow p-5 space-y-2 text-sm">
+    <h1 class="text-lg font-bold mb-3">درخواست <%= request.request_code %></h1>
+    <p><span class="text-gray-500">ملک:</span> <%= request.title %> (<%= request.property_code %>)</p>
+    <p><span class="text-gray-500">نام:</span> <%= request.full_name %></p>
+    <p><span class="text-gray-500">تلفن:</span> <%= request.phone %></p>
+    <p><span class="text-gray-500">واتساپ:</span> <%= request.whatsapp || '—' %></p>
+    <p><span class="text-gray-500">نیاز از تاریخ:</span> <%= request.need_from %></p>
+    <p><span class="text-gray-500">مدت اجاره:</span> <%= request.rent_duration %></p>
+    <p><span class="text-gray-500">تعداد نفرات:</span> <%= request.people_count %></p>
+    <p><span class="text-gray-500">پیام:</span> <%= request.message || '—' %></p>
+    <p><span class="text-gray-500">وضعیت فعلی:</span> <%= request.status %></p>
+    <p><span class="text-gray-500">زمان بازدید تعیین‌شده:</span> <%= request.visit_datetime || '—' %></p>
+  </div>
+  <form method="POST" action="/admin/requests/<%= request.id %>
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">/update" class="bg-white rounded-xl shadow p-5 space-y-3">
+    <h2 class="font-bold">بررسی و تعیین زمان بازدید</h2>
+    <div>
+      <label class="block text-sm mb-1">وضعیت</label>
+      <select name="status" class="w-full border rounded-lg px-3 py-2">
+        <option value="pending" <%= request.status==='pending'?'selected':'' %>>در انتظار بررسی</option>
+        <option value="approved" <%= request.status==='approved'?'selected':'' %>>تأیید اولیه</option>
+        <option value="scheduled" <%= request.status==='scheduled'?'selected':'' %>>زمان بازدید تعیین شد</option>
+        <option value="rejected" <%= request.status==='rejected'?'selected':'' %>>رد شده</option>
+        <option value="done" <%= request.status==='done'?'selected':'' %>>بازدید انجام شد</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm mb-1">زمان بازدید حضوری (تاریخ و ساعت)</label>
+      <input type="datetime-local" name="visit_datetime" class="w-full border rounded-lg px-3 py-2" value="<%= request.visit_datetime || '' %>">
+    </div>
+    <div>
+      <label class="block text-sm mb-1">یادداشت ادمین</label>
+      <textarea name="admin_note" rows="3" class="w-full border rounded-lg px-3 py-2"><%= request.admin_note || '' %></textarea>
+    </div>
+    <button class="w-full bg-emerald-600 text-white py-2 rounded-lg">ذخیره</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

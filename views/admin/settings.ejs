@@ -1,0 +1,25 @@
+<%- include('../partials/header') %>
+<h1>تنظیمات تماس و کد مشتری</h1>
+<p class="muted">شماره و برچسب واتساپ برای صفحه «تماس با ما» و QR کد.</p>
+<form method="POST" class="panel stack" style="max-width:520px;margin-top:1rem">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div>
+    <label class="label">شماره واتساپ پشتیبانی (با کد کشور)</label>
+    <input class="input" name="contact_whatsapp" value="<%= contact_whatsapp %>" placeholder="+374...">
+  </div>
+  <div>
+    <label class="label">شماره تماس</label>
+    <input class="input" name="contact_phone" value="<%= contact_phone %>" placeholder="+374...">
+  </div>
+  <div>
+    <label class="label">عنوان بخش تماس</label>
+    <input class="input" name="contact_label" value="<%= contact_label %>">
+  </div>
+  <div>
+    <label class="label">کد بعدی مشتری (حداقل ۲۰۰)</label>
+    <input class="input" type="number" min="200" name="next_user_code" value="<%= next_user_code %>">
+  </div>
+  <button class="btn btn-primary" type="submit">ذخیره</button>
+</form>
+<p style="margin-top:1rem"><a class="btn btn-ghost" href="/admin">بازگشت</a> <a class="btn btn-ghost" href="/contact" target="_blank">مشاهده صفحه تماس</a></p>
+<%- include('../partials/footer') %>
