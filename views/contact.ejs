@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+<section class="hero">
+  <h1>تماس با ما</h1>
+  <p>برای هماهنگی بازدید و پشتیبانی از طریق واتساپ یا تماس در ارتباط باشید.</p>
+</section>
+<div class="two-col">
+  <div class="panel" style="text-align:center">
+    <h2 style="margin-top:0"><%= label %></h2>
+    <% if (qrUrl) { %>
+      <img src="<%= qrUrl %>" alt="WhatsApp QR" width="240" height="240" style="border-radius:16px;background:#fff;padding:10px;margin:0.75rem auto;display:block">
+      <p class="muted">QR را با گوشی اسکن کنید تا واتساپ باز شود</p>
+    <% } else { %>
+      <p class="muted">هنوز شماره واتساپ تنظیم نشده است.</p>
+    <% } %>
+    <% if (waDigits) { %>
+      <a class="btn btn-primary" href="https://wa.me/<%= waDigits %>" target="_blank" rel="noopener noreferrer">چت در واتساپ</a>
+    <% } %>
+  </div>
+  <div class="panel stack">
+    <div>
+      <div class="label">واتساپ</div>
+      <div style="font-size:1.15rem;font-weight:700"><%= wa || '—' %></div>
+    </div>
+    <div>
+      <div class="label">تلفن تماس</div>
+      <div style="font-size:1.15rem;font-weight:700"><%= phone || '—' %></div>
+    </div>
+    <p class="muted">لطفاً هنگام پیام، <b>کد مشتری</b> خود را هم ارسال کنید.</p>
+    <a class="btn btn-ghost" href="/">مشاهده ملک‌ها</a>
+  </div>
+</div>
+<%- include('partials/footer') %>

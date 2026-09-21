@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+<h1><%= t('my_requests') %></h1>
+<div class="table-wrap panel" style="padding:0;margin-top:1rem">
+  <table>
+    <thead><tr>
+      <th>کد</th><th>ملک</th><th>از تاریخ</th><th>مدت</th><th>نفرات</th><th>وضعیت</th><th>زمان بازدید</th>
+    </tr></thead>
+    <tbody>
+      <% requests.forEach(r => { %>
+        <tr>
+          <td><%= r.request_code %></td>
+          <td><%= r.title %></td>
+          <td><%= r.need_from %></td>
+          <td><%= r.rent_duration %></td>
+          <td><%= r.people_count %></td>
+          <td><%= r.status %></td>
+          <td><%= r.visit_datetime || '—' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% if (!requests.length) { %><p class="muted" style="text-align:center;padding:2rem">درخواستی ندارید</p><% } %>
+<%- include('partials/footer') %>

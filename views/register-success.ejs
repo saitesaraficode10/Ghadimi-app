@@ -1,0 +1,12 @@
+<%- include('partials/header') %>
+<div class="auth-wrap">
+  <div class="panel auth-card" style="text-align:center">
+    <div style="font-size:2.4rem;color:#34d399">✓</div>
+    <h1 style="margin:0.4rem 0">ثبت‌نام موفق</h1>
+    <p class="muted">کد مشتری شما:</p>
+    <div style="font-size:2rem;font-weight:800;color:#6ee7b7;letter-spacing:0.05em"><%= user_code %></div>
+    <p class="muted" style="margin-top:1rem">این کد را نگه دارید. برای پیگیری با پشتیبانی اعلام کنید.</p>
+    <a class="btn btn-primary" href="/login" style="margin-top:0.75rem">ورود به حساب</a>
+  </div>
+</div>
+<%- include('partials/footer') %>

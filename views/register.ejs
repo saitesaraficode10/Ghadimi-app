@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+<div class="auth-wrap">
+  <div class="panel auth-card">
+    <h1 style="margin-top:0;text-align:center"><%= t('register') %></h1>
+    <% if (error) { %><div class="alert"><%= error %></div><% } %>
+    <form method="POST" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div><label class="label">نام و نام خانوادگی *</label><input class="input" name="full_name" required maxlength="80"></div>
+      <div><label class="label">شماره تماس ارمنی *</label><input class="input" name="phone_am" required maxlength="20" placeholder="+374..."></div>
+      <div><label class="label">شماره واتساپ *</label><input class="input" name="whatsapp" required maxlength="20" placeholder="+374... یا با کد کشور"></div>
+      <div><label class="label">رمز عبور (حداقل ۶ کاراکتر) *</label><input class="input" type="password" name="password" required minlength="6" maxlength="72"></div>
+      <button class="btn btn-primary" style="width:100%"><%= t('register') %></button>
+    </form>
+    <p class="muted" style="text-align:center;margin-top:1rem">پس از ثبت‌نام یک <b>کد مشتری</b> دریافت می‌کنید (از ۲۰۰ به بعد).</p>
+  </div>
+</div>
+<%- include('partials/footer') %>

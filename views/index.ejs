@@ -1,0 +1,51 @@
+<%- include('partials/header') %>
+<section class="hero">
+  <h1><%= t('home') %></h1>
+  <p>Ghadimi — اقامت مطمئن در ارمنستان. انتخاب خانه با فیلتر هوشمند و بازدید حضوری هماهنگ‌شده.</p>
+</section>
+
+<form class="filters" method="GET">
+  <input class="input" name="city" value="<%= filters.city || '' %>" placeholder="<%= t('city') %>">
+  <input class="input" name="rooms" type="number" min="1" value="<%= filters.rooms || '' %>" placeholder="<%= t('rooms') %>+">
+  <input class="input" name="area_from" type="number" value="<%= filters.area_from || '' %>" placeholder="<%= t('area') %>+">
+  <input class="input" name="price_from" type="number" value="<%= filters.price_from || '' %>" placeholder="<%= t('price_from') %>">
+  <input class="input" name="price_to" type="number" value="<%= filters.price_to || '' %>" placeholder="<%= t('price_to') %>">
+  <select class="input" name="status">
+    <option value=""><%= t('all') %></option>
+    <option value="available" <%= filters.status==='available'?'selected':'' %>><%= t('available') %></option>
+    <option value="rented" <%= filters.status==='rented'?'selected':'' %>><%= t('rented') %></option>
+    <option value="reserved" <%= filters.status==='reserved'?'selected':'' %>><%= t('reserved') %></option>
+  </select>
+  <button class="btn btn-primary" style="grid-column:1/-1"><%= t('filter') %></button>
+</form>
+
+<div class="grid-cards">
+  <% properties.forEach(p => { %>
+    <article class="card">
+      <a href="/property/<%= p.code %>">
+        <% if (p.image_path) { %>
+          <img class="card-img" src="<%= p.image_path %>" alt="<%= p.title %>" loading="lazy">
+        <% } else { %>
+          <div class="card-img" style="display:flex;align-items:center;justify-content:center;color:#6b7280">No image</div>
+        <% } %>
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:start">
+            <h2 style="margin:0;font-size:1.05rem"><%= p.title %></h2>
+            <span class="badge <%= p.status==='available'?'badge-ok':'badge-warn' %>"><%= statusLabel(p.status) %></span>
+          </div>
+          <p class="muted" style="margin:0.4rem 0 0"><%= p.city %><% if (p.rooms) { %> · <%= p.rooms %> <%= t('rooms') %><% } %><% if (p.area) { %> · <%= p.area %> m²<% } %></p>
+          <div class="price"><%= Number(p.price_monthly).toLocaleString('fa-IR') %> <%= p.currency %> / <%= t('monthly') %></div>
+          <% if (p.status==='rented' && p.available_from) { %><p class="muted" style="margin:0.35rem 0 0"><%= p.available_from %></p><% } %>
+        </div>
+      </a>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <form method="POST" action="/favorites/<%= p.code %>/toggle">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="fav-btn" type="submit" aria-label="favorite"><%= favIds.has(p.id) ? '♥' : '♡' %></button>
+        </form>
+      <% } %>
+    </article>
+  <% }) %>
+</div>
+<% if (!properties.length) { %><p class="muted" style="text-align:center;padding:2.5rem 0"><%= t('no_properties') %></p><% } %>
+<%- include('partials/footer') %>

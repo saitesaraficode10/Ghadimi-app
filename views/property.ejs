@@ -1,0 +1,89 @@
+<%- include('partials/header') %>
+<div class="two-col">
+  <section class="panel" style="padding:0;overflow:hidden">
+    <% if (property.image_path) { %>
+      <img src="<%= property.image_path %>" alt="" style="width:100%;height:260px;object-fit:cover;display:block">
+    <% } else { %>
+      <div style="height:220px;display:flex;align-items:center;justify-content:center;background:#1f2937;color:#6b7280">No image</div>
+    <% } %>
+    <div style="padding:1.25rem">
+      <div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:start">
+        <h1 style="margin:0;font-size:1.35rem"><%= property.title %></h1>
+        <span class="badge <%= property.status==='available'?'badge-ok':'badge-warn' %>"><%= statusLabel(property.status) %></span>
+      </div>
+      <p class="muted"><%= property.city %><% if (property.address) { %> · <%= property.address %><% } %></p>
+      <div class="price"><%= Number(property.price_monthly).toLocaleString('fa-IR') %> <%= property.currency %> / <%= t('monthly') %></div>
+      <ul class="muted" style="line-height:1.9;padding-inline-start:1.1rem">
+        <li><%= t('rooms') %>: <%= property.rooms || '-' %></li>
+        <li><%= t('area') %>: <%= property.area || '-' %></li>
+        <li><%= t('people_count') %>: <%= property.max_people || '-' %></li>
+        <% if (property.status==='rented' && property.available_from) { %><li><%= property.available_from %></li><% } %>
+      </ul>
+      <% if (property.description) { %><p style="line-height:1.85;font-size:0.95rem"><%= property.description %></p><% } %>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem">
+        <% if (property.map_url) { %><a class="btn btn-ghost" href="<%= property.map_url %>" target="_blank" rel="noopener noreferrer"><%= t('map') %></a><% } %>
+        <% if (property.contact_whatsapp) { %>
+          <a class="btn btn-primary" href="https://wa.me/<%= String(property.contact_whatsapp).replace(/[^0-9]/g,'') %>" target="_blank" rel="noopener noreferrer"><%= t('whatsapp') %></a>
+        <% } %>
+        <% if (typeof user !== 'undefined' && user) { %>
+          <form method="POST" action="/favorites/<%= property.code %>/toggle">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-ghost" type="submit"><%= isFav ? t('remove_favorite') : t('add_favorite') %></button>
+          </form>
+        <% } %>
+      </div>
+      <% if (property.lat && property.lng) { %>
+        <div style="margin-top:1rem">
+          <iframe class="map-frame" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://maps.google.com/maps?q=<%= property.lat %>,<%= property.lng %>&z=15&output=embed"></iframe>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top:0"><%= t('visit_request') %></h2>
+    <p class="muted" style="margin-top:0">پس از بررسی، زمان بازدید توسط تیم تعیین می‌شود.</p>
+    <% if (error) { %><div class="alert"><%= error %></div><% } %>
+    <form method="POST" action="/property/<%= property.code %>/visit" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div>
+        <label class="label">نام *</label>
+        <input class="input" name="full_name" required maxlength="80" value="<%= user ? user.full_name : '' %>">
+      </div>
+      <div>
+        <label class="label"><%= t('phone') %> *</label>
+        <input class="input" name="phone" required maxlength="20" value="<%= user ? user.phone : '' %>">
+      </div>
+      <div>
+        <label class="label"><%= t('whatsapp') %></label>
+        <input class="input" name="whatsapp" maxlength="20" value="<%= user && user.whatsapp ? user.whatsapp : '' %>">
+      </div>
+      <div>
+        <label class="label"><%= t('need_from') %> *</label>
+        <input class="input" type="date" name="need_from" required>
+      </div>
+      <div>
+        <label class="label"><%= t('rent_duration') %> *</label>
+        <select class="input" name="rent_duration" required>
+          <option value="">—</option>
+          <option value="1 ماه">۱ ماه</option>
+          <option value="3 ماه">۳ ماه</option>
+          <option value="6 ماه">۶ ماه</option>
+          <option value="1 سال">۱ سال</option>
+          <option value="بیش از 1 سال">بیش از ۱ سال</option>
+        </select>
+      </div>
+      <div>
+        <label class="label"><%= t('people_count') %> *</label>
+        <input class="input" type="number" name="people_count" min="1" max="20" required value="1">
+      </div>
+      <div>
+        <label class="label">توضیح</label>
+        <textarea class="input" name="message" rows="3" maxlength="1000"></textarea>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%"><%= t('submit') %></button>
+    </form>
+  </section>
+</div>
+<%- include('partials/footer') %>
