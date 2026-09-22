@@ -3,7 +3,7 @@
 <div class="table-wrap panel" style="padding:0;margin-top:1rem">
   <table>
     <thead><tr>
-      <th>کد</th><th>ملک</th><th>از تاریخ</th><th>مدت</th><th>نفرات</th><th>وضعیت</th><th>زمان بازدید</th>
+      <th>کد</th><th>ملک</th><th>از تاریخ</th><th>مدت</th><th>نفرات</th><th>وضعیت</th><th>زمان بازدید</th><th>محل</th>
     </tr></thead>
     <tbody>
       <% requests.forEach(r => { %>
@@ -15,6 +15,7 @@
           <td><%= r.people_count %></td>
           <td><%= r.status %></td>
           <td><%= r.visit_datetime || '—' %></td>
+          <td><%= r.visit_location || '—' %></td>
         </tr>
       <% }) %>
     </tbody>
