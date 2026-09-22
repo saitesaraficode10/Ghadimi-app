@@ -10,7 +10,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./utils/db');
 const { authUser, authAdmin, optionalUser, JWT_SECRET } = require('./middleware/auth');
-const { csrfToken, verifyCsrf, sanitizeText, isValidPhone } = require('./middleware/security');
+const { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone } = require('./middleware/security');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -53,12 +53,30 @@ const upload = multer({
     destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname).toLowerCase())
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 20 },
   fileFilter: (req, file, cb) => {
-    const ok = /jpeg|jpg|png|webp/i.test(file.mimetype) && /\.(jpe?g|png|webp)$/i.test(file.originalname);
-    cb(ok ? null : new Error('Only image uploads allowed'), ok);
+    const ok = /jpeg|jpg|png|webp/i.test(file.mimetype);
+    if (!ok) return cb(new Error('فقط تصویر jpg/png/webp مجاز است'));
+    cb(null, true);
   }
 });
+
+function savePropertyImages(propertyId, files) {
+  if (!files || !files.length) return;
+  const ins = db.prepare('INSERT INTO property_images (property_id, path, sort_order) VALUES (?, ?, ?)');
+  files.forEach((f, i) => {
+    ins.run(propertyId, '/uploads/properties/' + f.filename, i);
+  });
+  // set cover if empty
+  const prop = db.prepare('SELECT image_path FROM properties WHERE id = ?').get(propertyId);
+  if (prop && !prop.image_path && files[0]) {
+    db.prepare('UPDATE properties SET image_path = ? WHERE id = ?').run('/uploads/properties/' + files[0].filename, propertyId);
+  }
+}
+
+function getPropertyImages(propertyId) {
+  return db.prepare('SELECT * FROM property_images WHERE property_id = ? ORDER BY sort_order ASC, id ASC').all(propertyId);
+}
 
 
 function getSetting(key, fallback = '') {
@@ -144,7 +162,10 @@ app.get('/property/:code', optionalUser, (req, res) => {
   if (req.user) {
     isFav = !!db.prepare('SELECT id FROM favorites WHERE user_id = ? AND property_id = ?').get(req.user.id, property.id);
   }
-  res.render('property', { user: req.user, property, isFav, error: null, title: property.title });
+  let images = [];
+  try { images = getPropertyImages(property.id); } catch (e) {}
+  if (!images.length && property.image_path) images = [{ path: property.image_path }];
+  res.render('property', { user: req.user, property, images, isFav, error: null, title: property.title });
 });
 
 app.post('/property/:code/visit', optionalUser, (req, res) => {
@@ -160,7 +181,10 @@ app.post('/property/:code/visit', optionalUser, (req, res) => {
   if (!full_name || !phone || !need_from || !rent_duration || !people_count || people_count < 1 || people_count > 20 || !isValidPhone(phone)) {
     let isFav = false;
     if (req.user) isFav = !!db.prepare('SELECT id FROM favorites WHERE user_id = ? AND property_id = ?').get(req.user.id, property.id);
-    return res.render('property', { user: req.user, property, isFav, error: 'لطفاً فیلدهای ضروری را درست پر کنید', title: property.title });
+    let images = [];
+    try { images = getPropertyImages(property.id); } catch (e) {}
+    if (!images.length && property.image_path) images = [{ path: property.image_path }];
+    return res.render('property', { user: req.user, property, images, isFav, error: 'لطفاً فیلدهای ضروری را درست پر کنید', title: property.title });
   }
   const request_code = 'V' + Date.now().toString().slice(-10);
   db.prepare(`
@@ -273,62 +297,101 @@ app.get('/admin/properties', authAdmin, (req, res) => {
 });
 
 app.get('/admin/properties/new', authAdmin, (req, res) => {
-  res.render('admin/property-form', { admin: req.admin, property: null, error: null, title: 'New' });
+  res.render('admin/property-form', { admin: req.admin, property: null, images: [], error: null, title: 'New' });
 });
 
-app.post('/admin/properties/new', authAdmin, upload.single('image'), (req, res) => {
-  const b = req.body;
-  const code = sanitizeText(b.code, 30);
-  if (!code || !b.title || !b.price_monthly) {
-    return res.render('admin/property-form', { admin: req.admin, property: null, error: 'کد ملک، عنوان و قیمت الزامی است', title: 'New' });
-  }
-  const image_path = req.file ? '/uploads/properties/' + req.file.filename : null;
-  try {
-  db.prepare(`
-    INSERT INTO properties (code, title, city, address, rooms, area, price_monthly, currency, description, image_path, map_url, lat, lng, contact_whatsapp, status, available_from, max_people)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    code, b.title, b.city || 'Yerevan', b.address || null,
-    parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
-    parseFloat(b.price_monthly), b.currency || 'AMD', b.description || null, image_path,
-    b.map_url || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
-    b.contact_whatsapp || null, b.status || 'available', b.available_from || null,
-    parseInt(b.max_people || '2', 10)
-  );
-  res.redirect('/admin/properties');
-  } catch (e) {
-    return res.render('admin/property-form', { admin: req.admin, property: null, error: 'کد ملک تکراری است یا خطا در ذخیره', title: 'New' });
-  }
+app.post('/admin/properties/new', authAdmin, (req, res) => {
+  upload.array('images', 20)(req, res, (err) => {
+    if (!checkCsrfAfterMulter(req, res)) return;
+    if (err) {
+      return res.render('admin/property-form', { admin: req.admin, property: null, images: [], error: err.message || 'خطا در آپلود تصویر', title: 'New' });
+    }
+    try {
+      const b = req.body;
+      const code = sanitizeText(b.code, 30);
+      const title = sanitizeText(b.title, 120);
+      if (!code || !title || !b.price_monthly) {
+        return res.render('admin/property-form', { admin: req.admin, property: null, images: [], error: 'کد ملک، عنوان و قیمت الزامی است', title: 'New' });
+      }
+      const image_path = (req.files && req.files[0]) ? ('/uploads/properties/' + req.files[0].filename) : null;
+      const info = db.prepare(`
+        INSERT INTO properties (code, title, city, address, rooms, area, price_monthly, currency, description, image_path, map_url, lat, lng, contact_whatsapp, status, available_from, max_people)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        code, title, sanitizeText(b.city, 80) || 'Yerevan', sanitizeText(b.address, 120) || null,
+        parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
+        parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD', sanitizeText(b.description, 5000) || null, image_path,
+        sanitizeText(b.map_url, 500) || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
+        sanitizeText(b.contact_whatsapp, 30) || null, b.status || 'available', b.available_from || null,
+        parseInt(b.max_people || '2', 10)
+      );
+      savePropertyImages(info.lastInsertRowid, req.files || []);
+      res.redirect('/admin/properties');
+    } catch (e) {
+      console.error(e);
+      return res.render('admin/property-form', { admin: req.admin, property: null, images: [], error: 'کد ملک تکراری است یا خطا در ذخیره: ' + e.message, title: 'New' });
+    }
+  });
 });
 
 app.get('/admin/properties/:id/edit', authAdmin, (req, res) => {
   const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!property) return res.redirect('/admin/properties');
-  res.render('admin/property-form', { admin: req.admin, property, error: null, title: 'Edit' });
+  const images = getPropertyImages(property.id);
+  res.render('admin/property-form', { admin: req.admin, property, images, error: null, title: 'Edit' });
 });
 
-app.post('/admin/properties/:id/edit', authAdmin, upload.single('image'), (req, res) => {
-  const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
-  if (!property) return res.redirect('/admin/properties');
-  const b = req.body;
-  let image_path = property.image_path;
-  if (req.file) image_path = '/uploads/properties/' + req.file.filename;
-  db.prepare(`
-    UPDATE properties SET title=?, city=?, address=?, rooms=?, area=?, price_monthly=?, currency=?, description=?,
-      image_path=?, map_url=?, lat=?, lng=?, contact_whatsapp=?, status=?, available_from=?, max_people=?, updated_at=datetime('now')
-    WHERE id=?
-  `).run(
-    b.title, b.city, b.address, parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
-    parseFloat(b.price_monthly), b.currency || 'AMD', b.description, image_path,
-    b.map_url || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
-    b.contact_whatsapp || null, b.status, b.available_from || null, parseInt(b.max_people || '2', 10), property.id
-  );
-  res.redirect('/admin/properties');
+app.post('/admin/properties/:id/edit', authAdmin, (req, res) => {
+  upload.array('images', 20)(req, res, (err) => {
+    if (!checkCsrfAfterMulter(req, res)) return;
+    const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
+    if (!property) return res.redirect('/admin/properties');
+    if (err) {
+      return res.render('admin/property-form', { admin: req.admin, property, images: getPropertyImages(property.id), error: err.message || 'خطا در آپلود', title: 'Edit' });
+    }
+    try {
+      const b = req.body;
+      // delete selected images
+      let del = b.delete_images;
+      if (del) {
+        if (!Array.isArray(del)) del = [del];
+        const delStmt = db.prepare('DELETE FROM property_images WHERE id = ? AND property_id = ?');
+        del.forEach(id => delStmt.run(parseInt(id, 10), property.id));
+      }
+      db.prepare(`
+        UPDATE properties SET title=?, city=?, address=?, rooms=?, area=?, price_monthly=?, currency=?, description=?,
+          map_url=?, lat=?, lng=?, contact_whatsapp=?, status=?, available_from=?, max_people=?, updated_at=datetime('now')
+        WHERE id=?
+      `).run(
+        sanitizeText(b.title, 120), sanitizeText(b.city, 80), sanitizeText(b.address, 120) || null,
+        parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
+        parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD', sanitizeText(b.description, 5000) || null,
+        sanitizeText(b.map_url, 500) || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
+        sanitizeText(b.contact_whatsapp, 30) || null, b.status, b.available_from || null,
+        parseInt(b.max_people || '2', 10), property.id
+      );
+      savePropertyImages(property.id, req.files || []);
+      // refresh cover
+      const first = db.prepare('SELECT path FROM property_images WHERE property_id = ? ORDER BY sort_order, id LIMIT 1').get(property.id);
+      if (first) db.prepare('UPDATE properties SET image_path = ? WHERE id = ?').run(first.path, property.id);
+      res.redirect('/admin/properties');
+    } catch (e) {
+      console.error(e);
+      return res.render('admin/property-form', { admin: req.admin, property, images: getPropertyImages(property.id), error: 'خطا در ذخیره: ' + e.message, title: 'Edit' });
+    }
+  });
 });
 
 app.post('/admin/properties/:id/delete', authAdmin, (req, res) => {
-  db.prepare('DELETE FROM favorites WHERE property_id = ?').run(req.params.id);
-  db.prepare('DELETE FROM properties WHERE id = ?').run(req.params.id);
+  const id = parseInt(req.params.id, 10);
+  try {
+    db.prepare('DELETE FROM property_images WHERE property_id = ?').run(id);
+    db.prepare('DELETE FROM favorites WHERE property_id = ?').run(id);
+    db.prepare('DELETE FROM visit_requests WHERE property_id = ?').run(id);
+    db.prepare('DELETE FROM properties WHERE id = ?').run(id);
+  } catch (e) {
+    console.error('delete property', e.message);
+  }
   res.redirect('/admin/properties');
 });
 
