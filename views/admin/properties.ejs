@@ -1,28 +1,29 @@
 <%- include('../partials/header') %>
-<div class="flex justify-between items-center mb-4">
-  <h1 class="text-xl font-bold">مدیریت ملک‌ها</h1>
-  <a href="/admin/properties/new" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm">+ افزودن ملک</a>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+  <h1 style="margin:0">مدیریت ملک‌ها</h1>
+  <a class="btn btn-primary" href="/admin/properties/new">+ افزودن ملک</a>
 </div>
-<a href="/admin" class="text-sm text-gray-500 mb-4 inline-block">← داشبورد</a>
-<div class="bg-white rounded-xl shadow overflow-x-auto">
-  <table class="w-full text-sm">
-    <thead class="bg-gray-100"><tr>
-      <th class="p-3 text-right">کد</th><th class="p-3 text-right">عنوان</th><th class="p-3 text-right">قیمت</th>
-      <th class="p-3 text-right">وضعیت</th><th class="p-3 text-right">آزاد از</th><th class="p-3 text-right">عملیات</th>
-    </tr></thead>
+<a class="muted" href="/admin">← داشبورد</a>
+<div class="table-wrap panel" style="padding:0;margin-top:1rem">
+  <table>
+    <thead>
+      <tr>
+        <th>کد</th><th>عنوان</th><th>قیمت</th><th>وضعیت</th><th>آزاد از</th><th>عملیات</th>
+      </tr>
+    </thead>
     <tbody>
       <% properties.forEach(p => { %>
-        <tr class="border-t">
-          <td class="p-3 font-mono"><%= p.code %></td>
-          <td class="p-3"><%= p.title %></td>
-          <td class="p-3"><%= Number(p.price_monthly).toLocaleString('fa-IR') %></td>
-          <td class="p-3"><%= statusLabel(p.status) %></td>
-          <td class="p-3"><%= p.available_from || '—' %></td>
-          <td class="p-3 flex gap-2">
-            <a href="/admin/properties/<%= p.id %>/edit" class="text-blue-600">ویرایش</a>
-            <form method="POST" action="/admin/properties/<%= p.id %>
-<input type="hidden" name="_csrf" value="<%= csrfToken %>">/delete" onsubmit="return confirm('حذف شود؟')">
-              <button class="text-red-600">حذف</button>
+        <tr>
+          <td><code><%= p.code %></code></td>
+          <td><%= p.title %></td>
+          <td><%= Number(p.price_monthly).toLocaleString('fa-IR') %></td>
+          <td><%= statusLabel(p.status) %></td>
+          <td><%= p.available_from || '—' %></td>
+          <td style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <a class="btn btn-ghost" style="padding:0.3rem 0.7rem" href="/admin/properties/<%= p.id %>/edit">ویرایش</a>
+            <form method="POST" action="/admin/properties/<%= p.id %>/delete" onsubmit="return confirm('این ملک حذف شود؟');" style="display:inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn-ghost" type="submit" style="padding:0.3rem 0.7rem;color:#fca5a5">حذف</button>
             </form>
           </td>
         </tr>
