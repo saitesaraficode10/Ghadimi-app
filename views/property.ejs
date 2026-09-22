@@ -6,8 +6,8 @@
       <% if (images.length > 1) { %>
         <div style="display:flex;gap:0.4rem;padding:0.6rem;overflow-x:auto">
           <% images.forEach((img, i) => { %>
-            <img src="<%= img.path %>" alt="" onclick="document.getElementById('mainPhoto').src=this.src"
-              style="width:72px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.15)">
+            <img src="<%= img.path %>" alt="" data-gallery-thumb="<%= img.path %>"
+              style="width:72px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.15);opacity:<%= i===0?1:0.75 %>;<%= i===0?'outline:2px solid #34d399':'' %>">
           <% }) %>
         </div>
       <% } %>
@@ -96,4 +96,5 @@
     </form>
   </section>
 </div>
+<script src="/js/gallery.js"></script>
 <%- include('partials/footer') %>
