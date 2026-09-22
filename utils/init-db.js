@@ -87,6 +87,11 @@ try {
 } catch (e) {}
 
 try {
+  const rcols = db.prepare('PRAGMA table_info(visit_requests)').all().map(c => c.name);
+  if (!rcols.includes('visit_location')) db.exec('ALTER TABLE visit_requests ADD COLUMN visit_location TEXT');
+} catch (e) {}
+
+try {
   const ucols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   if (!ucols.includes('user_code')) db.exec('ALTER TABLE users ADD COLUMN user_code INTEGER');
   if (!ucols.includes('phone_am') && ucols.includes('phone')) {
