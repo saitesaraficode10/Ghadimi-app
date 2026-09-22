@@ -25,6 +25,7 @@ app.use(helmet({
     directives: {
       "default-src": ["'self'"],
       "script-src": ["'self'"],
+      "script-src-attr": ["'none'"],
       "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
       "font-src": ["'self'", "https://cdn.jsdelivr.net", "data:"],
       "img-src": ["'self'", "data:", "blob:", "https:"],
@@ -422,9 +423,18 @@ app.get('/admin/requests/:id', authAdmin, (req, res) => {
 });
 
 app.post('/admin/requests/:id/update', authAdmin, (req, res) => {
-  const { status, visit_datetime, admin_note } = req.body;
-  db.prepare(`UPDATE visit_requests SET status=?, visit_datetime=?, admin_note=?, updated_at=datetime('now') WHERE id=?`)
-    .run(status, visit_datetime || null, admin_note || null, req.params.id);
+  const status = sanitizeText(req.body.status, 30);
+  const visit_datetime = sanitizeText(req.body.visit_datetime, 40);
+  const visit_location = sanitizeText(req.body.visit_location, 200);
+  const admin_note = sanitizeText(req.body.admin_note, 1000);
+  try {
+    db.prepare(`UPDATE visit_requests SET status=?, visit_datetime=?, visit_location=?, admin_note=?, updated_at=datetime('now') WHERE id=?`)
+      .run(status, visit_datetime || null, visit_location || null, admin_note || null, req.params.id);
+  } catch (e) {
+    // older DB without visit_location column
+    db.prepare(`UPDATE visit_requests SET status=?, visit_datetime=?, admin_note=?, updated_at=datetime('now') WHERE id=?`)
+      .run(status, visit_datetime || null, admin_note || null, req.params.id);
+  }
   res.redirect('/admin/requests/' + req.params.id);
 });
 
