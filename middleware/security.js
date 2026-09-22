@@ -18,12 +18,28 @@ function csrfToken(req, res, next) {
 
 function verifyCsrf(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const ct = String(req.headers['content-type'] || '');
+  // multipart body is parsed later by multer — check after upload in those routes
+  if (ct.includes('multipart/form-data')) {
+    req.csrfDeferred = true;
+    return next();
+  }
   const sent = req.body._csrf || req.headers['x-csrf-token'];
   const cookie = req.cookies.csrf_token;
   if (!sent || !cookie || sent !== cookie) {
     return res.status(403).send('CSRF validation failed');
   }
   next();
+}
+
+function checkCsrfAfterMulter(req, res) {
+  const sent = req.body && req.body._csrf;
+  const cookie = req.cookies.csrf_token;
+  if (!sent || !cookie || sent !== cookie) {
+    res.status(403).send('CSRF validation failed');
+    return false;
+  }
+  return true;
 }
 
 function sanitizeText(str, max = 500) {
@@ -35,4 +51,4 @@ function isValidPhone(p) {
   return /^[+0-9\s()-]{7,20}$/.test(String(p || ''));
 }
 
-module.exports = { csrfToken, verifyCsrf, sanitizeText, isValidPhone };
+module.exports = { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone };
