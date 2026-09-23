@@ -1,0 +1,27 @@
+<%- include('../partials/header') %>
+<h1>دعوت ثبت‌نام مشتری</h1>
+<p class="muted">شماره مشتری را وارد کنید؛ لینک دعوت بسازید و برایش بفرستید.</p>
+<form method="POST" class="panel stack" style="max-width:520px;margin-top:1rem">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div><label class="label">نام (اختیاری)</label><input class="input" name="full_name"></div>
+  <div><label class="label">شماره تماس *</label><input class="input" name="phone" required placeholder="+374..."></div>
+  <div><label class="label">یادداشت</label><input class="input" name="note"></div>
+  <button class="btn btn-primary" type="submit">ساخت لینک دعوت</button>
+</form>
+<div class="table-wrap panel" style="padding:0;margin-top:1.25rem">
+  <table>
+    <thead><tr><th>شماره</th><th>نام</th><th>لینک</th><th>وضعیت</th></tr></thead>
+    <tbody>
+      <% invites.forEach(i => { %>
+        <tr>
+          <td><%= i.phone %></td>
+          <td><%= i.full_name || '—' %></td>
+          <td style="font-size:0.75rem;word-break:break-all">/invite/<%= i.token %></td>
+          <td><%= i.used ? 'استفاده شده' : 'فعال' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<p class="muted">لینک کامل = آدرس سایت شما + مسیر بالا (مثلاً https://your-domain.up.railway.app/invite/TOKEN)</p>
+<%- include('../partials/footer') %>

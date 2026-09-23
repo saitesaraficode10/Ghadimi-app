@@ -1,0 +1,38 @@
+<%- include('../partials/header') %>
+<div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+  <h1 style="margin:0">رزروها</h1>
+  <a class="btn btn-ghost" href="/admin">داشبورد</a>
+</div>
+<% rows.forEach(r => { %>
+  <div class="panel stack" style="margin-top:1rem">
+    <div><b><%= r.booking_code %></b> — <%= r.title %> (<%= r.property_code %>)</div>
+    <div class="muted">مشتری: <%= r.full_name %> · کد <%= r.user_code %> · <%= r.phone_am %></div>
+    <div class="muted">نوع: <%= r.rent_type %> · از <%= r.start_date %> · تا <%= r.end_date || '—' %> · مبلغ: <%= r.amount || '—' %></div>
+    <form method="POST" action="/admin/bookings/<%= r.id %>/update" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <div>
+          <label class="label">وضعیت رزرو</label>
+          <select class="input" name="status">
+            <option value="pending" <%= r.status==='pending'?'selected':'' %>>در انتظار</option>
+            <option value="confirmed" <%= r.status==='confirmed'?'selected':'' %>>تأیید شد</option>
+            <option value="cancelled" <%= r.status==='cancelled'?'selected':'' %>>لغو</option>
+            <option value="done" <%= r.status==='done'?'selected':'' %>>انجام شد</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">وضعیت پرداخت</label>
+          <select class="input" name="pay_status">
+            <option value="pending" <%= r.pay_status==='pending'?'selected':'' %>>در انتظار</option>
+            <option value="paid" <%= r.pay_status==='paid'?'selected':'' %>>پرداخت شد</option>
+            <option value="rejected" <%= r.pay_status==='rejected'?'selected':'' %>>رد</option>
+          </select>
+        </div>
+      </div>
+      <input class="input" name="admin_note" placeholder="یادداشت" value="<%= r.admin_note || '' %>">
+      <button class="btn btn-primary" type="submit">ذخیره</button>
+    </form>
+  </div>
+<% }) %>
+<% if (!rows.length) { %><p class="muted">رزروی نیست</p><% } %>
+<%- include('../partials/footer') %>
