@@ -4,12 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index,follow">
-  <title><%= title %> | <%= t('site_name') %></title>
+  <meta name="description" content="Ghadimi — Immigration | Travel | Accommodation">
+  <meta property="og:title" content="<%= title %> | Ghadimi">
+  <meta property="og:site_name" content="Ghadimi">
+  <title><%= title %> | Ghadimi</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="/logo-nav.png">
 </head>
-<body>
+<body data-logged-in="<%= (typeof user !== 'undefined' && user) ? '1' : '0' %>">
 <header class="nav">
   <div class="container nav-inner">
     <a class="brand" href="/" style="display:flex;align-items:center;gap:0.65rem;text-decoration:none">
@@ -19,6 +22,8 @@
       <a href="/"><%= t('home') %></a>
       <a href="/contact">تماس</a>
       <% if (typeof user !== 'undefined' && user) { %>
+        <a href="/profile">پروفایل من</a>
+        <a href="/my-bookings">رزروها</a>
         <a href="/my-requests"><%= t('my_requests') %></a>
         <a href="/favorites"><%= t('favorites') %></a>
         <a href="/logout"><%= t('logout') %></a>

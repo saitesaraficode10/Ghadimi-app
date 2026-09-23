@@ -3,7 +3,24 @@
   <div class="container" style="display:flex;flex-direction:column;align-items:center;gap:0.75rem">
     <img src="/logo-nav.png" alt="Ghadimi" width="120" height="34" style="opacity:0.9">
     <div style="opacity:0.75;font-size:0.8rem">Immigration | Travel | Accommodation</div>
-    <div>© 2026 <%= t('site_name') %></div>
+    <div>© 2026 Ghadimi</div>
   </div>
 </footer>
+
+<button type="button" id="chatBotBtn" aria-label="support">💬</button>
+<div id="chatBotBox">
+  <div class="chat-head">
+    <span>پشتیبانی آنلاین قدیمی</span>
+    <button type="button" id="chatBotClose" class="btn btn-ghost" style="padding:0.2rem 0.55rem">×</button>
+  </div>
+  <div id="chatBotMsgs"></div>
+  <form id="chatBotForm">
+    <input class="input" id="chatBotInput" placeholder="پیام شما..." maxlength="300" autocomplete="off">
+    <button class="btn btn-primary" type="submit" style="padding:0.55rem 0.8rem">ارسال</button>
+  </form>
+</div>
+
+<script src="/js/country-codes.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/app.js"></script>
 </body></html>
