@@ -10,7 +10,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./utils/db');
 const { authUser, authAdmin, optionalUser, JWT_SECRET } = require('./middleware/auth');
-const { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone } = require('./middleware/security');
+const { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone, checkLoginLock, recordLoginFail, clearLoginFail } = require('./middleware/security');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -89,6 +89,35 @@ function setSetting(key, value) {
   if (row) db.prepare('UPDATE settings SET value = ? WHERE key = ?').run(String(value), key);
   else db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run(key, String(value));
 }
+
+function smartOnlineCount() {
+  const h = new Date().getHours();
+  let base = 5;
+  if (h >= 8 && h < 11) base = 9;
+  else if (h >= 11 && h < 14) base = 13;
+  else if (h >= 14 && h < 18) base = 16;
+  else if (h >= 18 && h < 22) base = 12;
+  else if (h >= 22 || h < 2) base = 7;
+  else base = 4;
+  const wave = Math.abs(Math.sin(Date.now() / 420000)) * 4;
+  return Math.max(3, Math.round(base + wave));
+}
+function bumpViews() {
+  let v = parseInt(getSetting('page_views', '1287'), 10) || 1287;
+  let u = parseInt(getSetting('unique_visitors', '864'), 10) || 864;
+  v += 1;
+  if (Math.random() < 0.35) u += 1;
+  setSetting('page_views', String(v));
+  setSetting('unique_visitors', String(u));
+  return { views: v, uniques: u };
+}
+function isOnline(lastSeen) {
+  if (!lastSeen) return false;
+  const t = Date.parse(lastSeen);
+  if (!Number.isFinite(t)) return false;
+  return (Date.now() - t) < 3 * 60 * 1000;
+}
+
 function nextUserCode() {
   const row = db.prepare("SELECT value FROM settings WHERE key = 'next_user_code'").get();
   let n = row ? parseInt(row.value, 10) : 200;
@@ -149,14 +178,18 @@ app.get('/', optionalUser, (req, res) => {
     favIds = new Set(db.prepare('SELECT property_id FROM favorites WHERE user_id = ?').all(req.user.id).map(r => r.property_id));
   }
 
+  const viewStats = bumpViews();
   res.render('index', {
     user: req.user, properties, favIds,
     filters: { city, status, rooms, price_from, price_to, area_from },
+    onlineNow: smartOnlineCount(),
+    pageViews: viewStats.views,
+    uniqueVisitors: viewStats.uniques,
     title: t(res.locals.lang, 'home')
   });
 });
 
-app.get('/property/:code', optionalUser, (req, res) => {
+app.get('/property/:code', authUser, (req, res) => {
   const property = db.prepare('SELECT * FROM properties WHERE code = ?').get(req.params.code);
   if (!property) return res.status(404).send('Not found');
   let isFav = false;
@@ -169,7 +202,7 @@ app.get('/property/:code', optionalUser, (req, res) => {
   res.render('property', { user: req.user, property, images, isFav, error: null, title: property.title });
 });
 
-app.post('/property/:code/visit', optionalUser, (req, res) => {
+app.post('/property/:code/visit', authUser, (req, res) => {
   const property = db.prepare('SELECT * FROM properties WHERE code = ?').get(req.params.code);
   if (!property) return res.status(404).send('Not found');
   const full_name = sanitizeText(req.body.full_name, 80);
@@ -219,11 +252,15 @@ app.get('/favorites', authUser, (req, res) => {
 app.get('/register', (req, res) => res.render('register', { error: null, title: t(res.locals.lang, 'register') }));
 app.post('/register', authLimiter, async (req, res) => {
   const full_name = sanitizeText(req.body.full_name, 80);
-  const phone_am = sanitizeText(req.body.phone_am, 20);
-  const whatsapp = sanitizeText(req.body.whatsapp, 20);
+  const phone_cc = sanitizeText(req.body.phone_cc, 8) || '+374';
+  const phone_local = sanitizeText(req.body.phone_local, 20).replace(/^0+/, '');
+  const wa_cc = sanitizeText(req.body.wa_cc, 8) || phone_cc;
+  const wa_local = sanitizeText(req.body.wa_local, 20).replace(/^0+/, '');
+  const phone_am = (phone_cc + phone_local).replace(/\s/g, '');
+  const whatsapp = (wa_cc + wa_local).replace(/\s/g, '');
   const password = String(req.body.password || '');
-  if (!full_name || !phone_am || !whatsapp || password.length < 6) {
-    return res.render('register', { error: 'نام، شماره ارمنی، واتساپ و رمز (حداقل ۶) الزامی است', title: 'ثبت‌نام' });
+  if (!full_name || !phone_local || !wa_local || password.length < 6) {
+    return res.render('register', { error: 'نام، شماره تماس، واتساپ و رمز (حداقل ۶) الزامی است', title: 'ثبت‌نام' });
   }
   if (!isValidPhone(phone_am) || !isValidPhone(whatsapp)) {
     return res.render('register', { error: 'فرمت شماره تماس یا واتساپ نامعتبر است', title: 'ثبت‌نام' });
@@ -231,8 +268,14 @@ app.post('/register', authLimiter, async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 12);
     const user_code = nextUserCode();
-    db.prepare('INSERT INTO users (user_code, full_name, phone_am, whatsapp, password_hash) VALUES (?, ?, ?, ?, ?)')
+    db.prepare("INSERT INTO users (user_code, full_name, phone_am, whatsapp, password_hash, last_seen) VALUES (?, ?, ?, ?, ?, datetime('now'))")
       .run(user_code, full_name, phone_am, whatsapp, hash);
+    const invite_token = sanitizeText(req.body.invite_token, 64);
+    if (invite_token) {
+      try {
+        db.prepare("UPDATE invites SET used=1, used_at=datetime('now') WHERE token=? AND used=0").run(invite_token);
+      } catch (e) {}
+    }
     res.render('register-success', { user: null, user_code, title: 'ثبت‌نام موفق' });
   } catch (e) {
     console.error(e.message);
@@ -244,10 +287,18 @@ app.get('/login', (req, res) => res.render('login', { error: null, title: t(res.
 app.post('/login', authLimiter, async (req, res) => {
   const phone = sanitizeText(req.body.phone, 20);
   const password = String(req.body.password || '');
+  const lockKey = 'user:' + phone;
+  try {
+    const lock = checkLoginLock(db, lockKey);
+    if (!lock.ok) return res.render('login', { error: 'حساب موقتاً قفل است. ' + lock.minutes + ' دقیقه صبر کنید', title: 'ورود' });
+  } catch (e) {}
   const user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone);
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    try { recordLoginFail(db, lockKey); } catch (e) {}
     return res.render('login', { error: 'شماره یا رمز اشتباه', title: 'ورود' });
   }
+  try { clearLoginFail(db, lockKey); } catch (e) {}
+  try { db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(user.id); } catch (e) {}
   const token = jwt.sign({ id: user.id, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
   res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.redirect('/');
@@ -268,11 +319,21 @@ app.get('/my-requests', authUser, (req, res) => {
 // admin
 app.get('/admin/login', (req, res) => res.render('admin/login', { error: null, title: 'Admin' }));
 app.post('/admin/login', authLimiter, (req, res) => {
-  const { username, password } = req.body;
+  const username = sanitizeText(req.body.username, 40);
+  const password = String(req.body.password || '');
+  const lockKey = 'admin:' + username;
+  try {
+    const lock = checkLoginLock(db, lockKey);
+    if (!lock.ok) return res.render('admin/login', { error: 'قفل موقت: ' + lock.minutes + ' دقیقه', title: 'Admin' });
+  } catch (e) {}
   const ok =
     (username === process.env.ADMIN1_USERNAME && password === process.env.ADMIN1_PASSWORD) ||
     (username === process.env.ADMIN2_USERNAME && password === process.env.ADMIN2_PASSWORD);
-  if (!ok) return res.render('admin/login', { error: 'نام کاربری یا رمز اشتباه', title: 'Admin' });
+  if (!ok) {
+    try { recordLoginFail(db, lockKey); } catch (e) {}
+    return res.render('admin/login', { error: 'نام کاربری یا رمز اشتباه', title: 'Admin' });
+  }
+  try { clearLoginFail(db, lockKey); } catch (e) {}
   const token = jwt.sign({ username, role: 'admin' }, JWT_SECRET, { expiresIn: '12h' });
   res.cookie('admin_token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 12 * 60 * 60 * 1000 });
   res.redirect('/admin');
@@ -455,6 +516,13 @@ app.get('/admin/settings', authAdmin, (req, res) => {
     contact_phone: getSetting('contact_phone', ''),
     contact_label: getSetting('contact_label', 'پشتیبانی واتساپ'),
     next_user_code: getSetting('next_user_code', '200'),
+    pay_card_ir: getSetting('pay_card_ir', ''),
+    pay_card_ir_enabled: getSetting('pay_card_ir_enabled', '0'),
+    pay_card_am: getSetting('pay_card_am', ''),
+    pay_card_am_enabled: getSetting('pay_card_am_enabled', '0'),
+    pay_card_visa: getSetting('pay_card_visa', ''),
+    pay_card_visa_enabled: getSetting('pay_card_visa_enabled', '0'),
+    pay_card_note: getSetting('pay_card_note', ''),
     title: 'تنظیمات'
   });
 });
@@ -465,16 +533,169 @@ app.post('/admin/settings', authAdmin, (req, res) => {
   setSetting('contact_label', sanitizeText(req.body.contact_label, 80) || 'پشتیبانی واتساپ');
   const n = parseInt(req.body.next_user_code, 10);
   if (Number.isFinite(n) && n >= 200) setSetting('next_user_code', String(n));
+  setSetting('pay_card_ir', sanitizeText(req.body.pay_card_ir, 40));
+  setSetting('pay_card_ir_enabled', req.body.pay_card_ir_enabled === '1' ? '1' : '0');
+  setSetting('pay_card_am', sanitizeText(req.body.pay_card_am, 40));
+  setSetting('pay_card_am_enabled', req.body.pay_card_am_enabled === '1' ? '1' : '0');
+  setSetting('pay_card_visa', sanitizeText(req.body.pay_card_visa, 40));
+  setSetting('pay_card_visa_enabled', req.body.pay_card_visa_enabled === '1' ? '1' : '0');
+  setSetting('pay_card_note', sanitizeText(req.body.pay_card_note, 500));
   res.redirect('/admin/settings');
 });
 
 app.get('/admin/users', authAdmin, (req, res) => {
-  const users = db.prepare('SELECT id, user_code, full_name, phone_am, whatsapp, created_at FROM users ORDER BY user_code ASC').all();
-  res.render('admin/users', { admin: req.admin, users, title: 'کاربران' });
+  const users = db.prepare('SELECT id, user_code, full_name, phone_am, whatsapp, created_at, last_seen FROM users ORDER BY user_code ASC').all();
+  res.render('admin/users', { admin: req.admin, users, isOnline, title: 'کاربران' });
+});
+
+
+
+app.post('/api/presence', optionalUser, (req, res) => {
+  if (req.user) {
+    try { db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(req.user.id); } catch (e) {}
+  }
+  res.json({ ok: true, online: smartOnlineCount() });
+});
+
+app.get('/profile', authUser, (req, res) => {
+  res.render('profile', { user: req.user, error: null, ok: null, title: 'پروفایل من' });
+});
+
+app.post('/profile', authUser, (req, res) => {
+  const full_name = sanitizeText(req.body.full_name, 80);
+  const phone_cc = sanitizeText(req.body.phone_cc, 8) || '+374';
+  const phone_local = sanitizeText(req.body.phone_local, 20).replace(/^0+/, '');
+  const wa_cc = sanitizeText(req.body.wa_cc, 8) || phone_cc;
+  const wa_local = sanitizeText(req.body.wa_local, 20).replace(/^0+/, '');
+  const phone_am = (phone_cc + phone_local).replace(/\s/g, '');
+  const whatsapp = (wa_cc + wa_local).replace(/\s/g, '');
+  if (!full_name || !phone_local || !wa_local || !isValidPhone(phone_am) || !isValidPhone(whatsapp)) {
+    return res.render('profile', { user: req.user, error: 'اطلاعات نامعتبر است', ok: null, title: 'پروفایل من' });
+  }
+  try {
+    db.prepare('UPDATE users SET full_name=?, phone_am=?, whatsapp=? WHERE id=?').run(full_name, phone_am, whatsapp, req.user.id);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    res.render('profile', { user, error: null, ok: 'ذخیره شد', title: 'پروفایل من' });
+  } catch (e) {
+    res.render('profile', { user: req.user, error: 'شماره تکراری است یا خطا', ok: null, title: 'پروفایل من' });
+  }
+});
+
+app.post('/admin/users/:id/delete', authAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    db.prepare('DELETE FROM favorites WHERE user_id = ?').run(id);
+    db.prepare('UPDATE visit_requests SET user_id = NULL WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  } catch (e) { console.error(e.message); }
+  res.redirect('/admin/users');
+});
+
+
+
+// ---- Bookings (login required) ----
+app.get('/book/:code', authUser, (req, res) => {
+  const property = db.prepare('SELECT * FROM properties WHERE code = ?').get(req.params.code);
+  if (!property) return res.status(404).send('Not found');
+  const cards = {
+    ir: getSetting('pay_card_ir_enabled', '0') === '1' ? getSetting('pay_card_ir', '') : '',
+    am: getSetting('pay_card_am_enabled', '0') === '1' ? getSetting('pay_card_am', '') : '',
+    visa: getSetting('pay_card_visa_enabled', '0') === '1' ? getSetting('pay_card_visa', '') : '',
+    note: getSetting('pay_card_note', '')
+  };
+  res.render('book', { user: req.user, property, cards, error: null, title: 'رزرو ملک' });
+});
+
+app.post('/book/:code', authUser, (req, res) => {
+  const property = db.prepare('SELECT * FROM properties WHERE code = ?').get(req.params.code);
+  if (!property) return res.status(404).send('Not found');
+  const rent_type = sanitizeText(req.body.rent_type, 20);
+  const start_date = sanitizeText(req.body.start_date, 20);
+  const end_date = sanitizeText(req.body.end_date, 20);
+  const pay_method = sanitizeText(req.body.pay_method, 20);
+  const amount = req.body.amount ? parseFloat(req.body.amount) : null;
+  const cards = {
+    ir: getSetting('pay_card_ir_enabled', '0') === '1' ? getSetting('pay_card_ir', '') : '',
+    am: getSetting('pay_card_am_enabled', '0') === '1' ? getSetting('pay_card_am', '') : '',
+    visa: getSetting('pay_card_visa_enabled', '0') === '1' ? getSetting('pay_card_visa', '') : '',
+    note: getSetting('pay_card_note', '')
+  };
+  if (!['daily', 'monthly', 'yearly'].includes(rent_type) || !start_date || !['cash', 'online'].includes(pay_method)) {
+    return res.render('book', { user: req.user, property, cards, error: 'لطفاً نوع رزرو، تاریخ و روش پرداخت را درست انتخاب کنید', title: 'رزرو ملک' });
+  }
+  const booking_code = 'B' + Date.now().toString().slice(-10);
+  db.prepare(`
+    INSERT INTO bookings (booking_code, user_id, property_id, rent_type, start_date, end_date, amount, currency, pay_method, pay_status, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')
+  `).run(booking_code, req.user.id, property.id, rent_type, start_date, end_date || null, amount, property.currency || 'AMD', pay_method);
+  res.render('book-success', {
+    user: req.user, booking_code, pay_method, cards, property,
+    title: 'رزرو ثبت شد'
+  });
+});
+
+app.get('/my-bookings', authUser, (req, res) => {
+  const rows = db.prepare(`
+    SELECT b.*, p.title, p.code AS property_code FROM bookings b
+    JOIN properties p ON p.id = b.property_id
+    WHERE b.user_id = ? ORDER BY b.created_at DESC
+  `).all(req.user.id);
+  res.render('my-bookings', { user: req.user, rows, title: 'رزروهای من' });
+});
+
+app.get('/admin/bookings', authAdmin, (req, res) => {
+  const rows = db.prepare(`
+    SELECT b.*, p.title, p.code AS property_code, u.full_name, u.user_code, u.phone_am
+    FROM bookings b
+    JOIN properties p ON p.id = b.property_id
+    JOIN users u ON u.id = b.user_id
+    ORDER BY b.created_at DESC
+  `).all();
+  res.render('admin/bookings', { admin: req.admin, rows, title: 'رزروها' });
+});
+
+app.post('/admin/bookings/:id/update', authAdmin, (req, res) => {
+  const status = sanitizeText(req.body.status, 30);
+  const pay_status = sanitizeText(req.body.pay_status, 30);
+  const admin_note = sanitizeText(req.body.admin_note, 1000);
+  db.prepare(`UPDATE bookings SET status=?, pay_status=?, admin_note=?, updated_at=datetime('now') WHERE id=?`)
+    .run(status, pay_status, admin_note || null, req.params.id);
+  res.redirect('/admin/bookings');
+});
+
+// ---- Invites ----
+const crypto = require('crypto');
+app.get('/admin/invites', authAdmin, (req, res) => {
+  const invites = db.prepare('SELECT * FROM invites ORDER BY created_at DESC LIMIT 100').all();
+  const base = (process.env.PUBLIC_URL || '').replace(/\/$/, '') || '';
+  res.render('admin/invites', { admin: req.admin, invites, base, host: '', title: 'دعوت ثبت‌نام' });
+});
+
+app.post('/admin/invites', authAdmin, (req, res) => {
+  const full_name = sanitizeText(req.body.full_name, 80);
+  const phone = sanitizeText(req.body.phone, 30);
+  const note = sanitizeText(req.body.note, 200);
+  if (!phone) return res.redirect('/admin/invites');
+  const token = crypto.randomBytes(16).toString('hex');
+  db.prepare('INSERT INTO invites (token, full_name, phone, note, created_by) VALUES (?, ?, ?, ?, ?)')
+    .run(token, full_name || null, phone, note || null, req.admin.username);
+  res.redirect('/admin/invites');
+});
+
+app.get('/invite/:token', (req, res) => {
+  const inv = db.prepare('SELECT * FROM invites WHERE token = ?').get(req.params.token);
+  if (!inv || inv.used) return res.status(400).send('لینک دعوت نامعتبر یا قبلاً استفاده شده است');
+  res.render('register', { error: null, invite: inv, title: 'ثبت‌نام با دعوت' });
 });
 
 
 try { require('./utils/init-db'); } catch (e) { console.log('init:', e.message); }
 
+app.use((err, req, res, next) => {
+  console.error('ERR', err && err.message);
+  res.status(500).send('خطای سرور');
+});
+
 app.listen(PORT, '0.0.0.0', () => console.log('Amlak server on port', PORT));
+
 
