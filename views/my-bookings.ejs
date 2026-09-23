@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+<h1>رزروهای من</h1>
+<div class="table-wrap panel" style="padding:0;margin-top:1rem">
+  <table>
+    <thead><tr><th>کد</th><th>ملک</th><th>نوع</th><th>از</th><th>پرداخت</th><th>وضعیت</th></tr></thead>
+    <tbody>
+      <% rows.forEach(r => { %>
+        <tr>
+          <td><%= r.booking_code %></td>
+          <td><%= r.title %></td>
+          <td><%= r.rent_type %></td>
+          <td><%= r.start_date %></td>
+          <td><%= r.pay_method %> / <%= r.pay_status %></td>
+          <td><%= r.status %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% if (!rows.length) { %><p class="muted" style="text-align:center;padding:2rem">رزروی ندارید</p><% } %>
+<%- include('partials/footer') %>

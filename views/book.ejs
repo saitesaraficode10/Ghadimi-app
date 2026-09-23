@@ -1,0 +1,54 @@
+<%- include('partials/header') %>
+<h1>رزرو: <%= property.title %></h1>
+<p class="muted"><%= property.city %> · <%= Number(property.price_monthly).toLocaleString('fa-IR') %> <%= property.currency %> / ماه</p>
+<% if (error) { %><div class="alert"><%= error %></div><% } %>
+<form method="POST" class="panel stack" style="max-width:560px;margin-top:1rem">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div>
+    <label class="label">نوع رزرو *</label>
+    <select class="input" name="rent_type" required>
+      <option value="daily">روزانه</option>
+      <option value="monthly" selected>ماهانه</option>
+      <option value="yearly">سالانه</option>
+    </select>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
+    <div>
+      <label class="label">از تاریخ *</label>
+      <input class="input" type="date" name="start_date" required>
+    </div>
+    <div>
+      <label class="label">تا تاریخ</label>
+      <input class="input" type="date" name="end_date">
+    </div>
+  </div>
+  <div>
+    <label class="label">مبلغ توافقی / پیش‌پرداخت (اختیاری)</label>
+    <input class="input" type="number" name="amount" min="0" placeholder="مثلاً مبلغ پیش‌پرداخت">
+  </div>
+  <div>
+    <label class="label">روش پرداخت *</label>
+    <select class="input" name="pay_method" required id="payMethod">
+      <option value="cash">نقدی (حضوری)</option>
+      <option value="online">آنلاین (کارت به کارت)</option>
+    </select>
+  </div>
+  <div id="cardBox" class="panel" style="display:none;background:rgba(0,0,0,0.2)">
+    <p class="muted" style="margin-top:0">شماره کارت‌های فعال برای واریز پیش‌پرداخت:</p>
+    <% if (cards.ir) { %><p><b>کارت ایران:</b> <code><%= cards.ir %></code></p><% } %>
+    <% if (cards.am) { %><p><b>کارت ارمنستان:</b> <code><%= cards.am %></code></p><% } %>
+    <% if (cards.visa) { %><p><b>Visa:</b> <code><%= cards.visa %></code></p><% } %>
+    <% if (!cards.ir && !cards.am && !cards.visa) { %><p class="muted">فعلاً کارتی فعال نیست؛ با پشتیبانی هماهنگ کنید.</p><% } %>
+    <% if (cards.note) { %><p class="muted"><%= cards.note %></p><% } %>
+  </div>
+  <button class="btn btn-primary" type="submit">ثبت درخواست رزرو</button>
+</form>
+<script>
+  (function(){
+    var sel = document.getElementById('payMethod');
+    var box = document.getElementById('cardBox');
+    function sync(){ box.style.display = sel.value === 'online' ? 'block' : 'none'; }
+    sel.addEventListener('change', sync); sync();
+  })();
+</script>
+<%- include('partials/footer') %>

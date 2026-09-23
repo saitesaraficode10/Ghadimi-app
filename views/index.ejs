@@ -1,9 +1,25 @@
 <%- include('partials/header') %>
-<section class="hero">
-  <h1><%= t('home') %></h1>
-  <p>Ghadimi — اقامت مطمئن در ارمنستان. انتخاب خانه با فیلتر هوشمند و بازدید حضوری هماهنگ‌شده.</p>
+<section class="hero-card">
+  <h1 style="margin:0 0 0.4rem">Ghadimi</h1>
+  <p class="muted" style="margin:0">Immigration | Travel | Accommodation — اقامت مطمئن در ارمنستان</p>
+  <div class="theme-bar" style="margin-top:0.9rem">
+    <span class="muted" style="font-size:0.8rem">تم رنگی:</span>
+    <button type="button" class="theme-dot" data-theme="emerald" title="زمردی"></button>
+    <button type="button" class="theme-dot" data-theme="ocean" title="اقیانوسی"></button>
+    <button type="button" class="theme-dot" data-theme="violet" title="بنفش"></button>
+    <button type="button" class="theme-dot" data-theme="rose" title="رز"></button>
+    <button type="button" class="theme-dot" data-theme="gold" title="طلایی"></button>
+    <button type="button" class="theme-dot" data-theme="midnight" title="نیمه‌شب"></button>
+  </div>
 </section>
 
+<div class="stats-bar">
+  <div class="stat-card"><b><%= typeof onlineNow !== 'undefined' ? onlineNow : '—' %></b><span class="muted">آنلاین الان</span></div>
+  <div class="stat-card"><b><%= typeof pageViews !== 'undefined' ? Number(pageViews).toLocaleString('fa-IR') : '—' %></b><span class="muted">بازدید صفحات</span></div>
+  <div class="stat-card"><b><%= typeof uniqueVisitors !== 'undefined' ? Number(uniqueVisitors).toLocaleString('fa-IR') : '—' %></b><span class="muted">بازدیدکننده</span></div>
+</div>
+
+<p class="muted" style="margin:0 0 0.75rem">برای دیدن جزئیات، گالری عکس و رزرو باید وارد حساب شوید.</p>
 <form class="filters" method="GET">
   <input class="input" name="city" value="<%= filters.city || '' %>" placeholder="<%= t('city') %>">
   <input class="input" name="rooms" type="number" min="1" value="<%= filters.rooms || '' %>" placeholder="<%= t('rooms') %>+">
@@ -24,7 +40,10 @@
     <article class="card">
       <a href="/property/<%= p.code %>">
         <% if (p.image_path) { %>
-          <img class="card-img" src="<%= p.image_path %>" alt="<%= p.title %>" loading="lazy">
+          <span class="img-wm-wrap">
+            <img class="card-img" src="<%= p.image_path %>" alt="<%= p.title %>" loading="lazy">
+            <img class="wm" src="/logo-nav.png" alt="">
+          </span>
         <% } else { %>
           <div class="card-img" style="display:flex;align-items:center;justify-content:center;color:#6b7280">No image</div>
         <% } %>
@@ -35,13 +54,12 @@
           </div>
           <p class="muted" style="margin:0.4rem 0 0"><%= p.city %><% if (p.rooms) { %> · <%= p.rooms %> <%= t('rooms') %><% } %><% if (p.area) { %> · <%= p.area %> m²<% } %></p>
           <div class="price"><%= Number(p.price_monthly).toLocaleString('fa-IR') %> <%= p.currency %> / <%= t('monthly') %></div>
-          <% if (p.status==='rented' && p.available_from) { %><p class="muted" style="margin:0.35rem 0 0"><%= p.available_from %></p><% } %>
         </div>
       </a>
       <% if (typeof user !== 'undefined' && user) { %>
         <form method="POST" action="/favorites/<%= p.code %>/toggle">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="fav-btn" type="submit" aria-label="favorite"><%= favIds.has(p.id) ? '♥' : '♡' %></button>
+          <button class="fav-btn" type="submit"><%= favIds.has(p.id) ? '♥' : '♡' %></button>
         </form>
       <% } %>
     </article>

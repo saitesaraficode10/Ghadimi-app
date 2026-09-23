@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+<div class="auth-wrap">
+  <div class="panel auth-card" style="text-align:center">
+    <div style="font-size:2rem;color:var(--accent2)">✓</div>
+    <h1 style="margin:0.4rem 0">رزرو ثبت شد</h1>
+    <p class="muted">کد رزرو: <b><%= booking_code %></b></p>
+    <% if (pay_method === 'online') { %>
+      <div style="text-align:right;margin-top:1rem">
+        <p>لطفاً پیش‌پرداخت را واریز کنید:</p>
+        <% if (cards.ir) { %><p>کارت ایران: <code><%= cards.ir %></code></p><% } %>
+        <% if (cards.am) { %><p>کارت ارمنستان: <code><%= cards.am %></code></p><% } %>
+        <% if (cards.visa) { %><p>Visa: <code><%= cards.visa %></code></p><% } %>
+        <% if (cards.note) { %><p class="muted"><%= cards.note %></p><% } %>
+      </div>
+    <% } else { %>
+      <p class="muted">پرداخت نقدی؛ تیم ما برای هماهنگی تماس می‌گیرد.</p>
+    <% } %>
+    <a class="btn btn-primary" href="/my-bookings" style="margin-top:1rem">رزروهای من</a>
+  </div>
+</div>
+<%- include('partials/footer') %>
