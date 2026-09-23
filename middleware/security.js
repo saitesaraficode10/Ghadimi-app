@@ -51,4 +51,33 @@ function isValidPhone(p) {
   return /^[+0-9\s()-]{7,20}$/.test(String(p || ''));
 }
 
-module.exports = { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone };
+function checkLoginLock(db, key) {
+  const row = db.prepare('SELECT * FROM login_attempts WHERE key = ?').get(key);
+  if (!row) return { ok: true };
+  if (row.locked_until) {
+    const until = Date.parse(row.locked_until);
+    if (Number.isFinite(until) && until > Date.now()) {
+      return { ok: false, minutes: Math.ceil((until - Date.now()) / 60000) };
+    }
+  }
+  return { ok: true, attempts: row.attempts || 0 };
+}
+
+function recordLoginFail(db, key) {
+  const row = db.prepare('SELECT * FROM login_attempts WHERE key = ?').get(key);
+  const attempts = (row ? row.attempts : 0) + 1;
+  let locked = null;
+  if (attempts >= 7) locked = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  if (row) {
+    db.prepare("UPDATE login_attempts SET attempts=?, locked_until=?, updated_at=datetime('now') WHERE key=?").run(attempts, locked, key);
+  } else {
+    db.prepare('INSERT INTO login_attempts (key, attempts, locked_until) VALUES (?, ?, ?)').run(key, attempts, locked);
+  }
+  return { attempts, locked };
+}
+
+function clearLoginFail(db, key) {
+  db.prepare('DELETE FROM login_attempts WHERE key = ?').run(key);
+}
+
+module.exports = { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone, checkLoginLock, recordLoginFail, clearLoginFail };
