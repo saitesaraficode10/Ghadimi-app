@@ -94,9 +94,7 @@ try {
 try {
   const ucols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   if (!ucols.includes('user_code')) db.exec('ALTER TABLE users ADD COLUMN user_code INTEGER');
-  if (!ucols.includes('phone_am') && ucols.includes('phone')) {
-    // keep old phone if exists; new installs use phone_am
-  }
+  if (!ucols.includes('last_seen')) db.exec('ALTER TABLE users ADD COLUMN last_seen TEXT');
 } catch (e) {}
 
 const set = (k, v) => {
@@ -107,6 +105,9 @@ set('contact_whatsapp', '+37400000000');
 set('contact_phone', '+37400000000');
 set('contact_label', 'پشتیبانی واتساپ');
 set('next_user_code', '200');
+set('page_views', '1287');
+set('unique_visitors', '864');
+
 
 const c = db.prepare('SELECT COUNT(*) AS c FROM properties').get().c;
 if (c === 0) {
@@ -120,3 +121,60 @@ if (c === 0) {
 }
 
 console.log('Amlak DB initialized');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS bookings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  booking_code TEXT UNIQUE NOT NULL,
+  user_id INTEGER NOT NULL,
+  property_id INTEGER NOT NULL,
+  rent_type TEXT NOT NULL,
+  start_date TEXT NOT NULL,
+  end_date TEXT,
+  amount REAL,
+  currency TEXT DEFAULT 'AMD',
+  pay_method TEXT NOT NULL,
+  pay_status TEXT DEFAULT 'pending',
+  status TEXT DEFAULT 'pending',
+  admin_note TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(user_id) REFERENCES users(id),
+  FOREIGN KEY(property_id) REFERENCES properties(id)
+);
+
+CREATE TABLE IF NOT EXISTS invites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  phone TEXT,
+  note TEXT,
+  used INTEGER DEFAULT 0,
+  created_by TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  used_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  key TEXT NOT NULL,
+  attempts INTEGER DEFAULT 0,
+  locked_until TEXT,
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone_am);
+CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status);
+CREATE INDEX IF NOT EXISTS idx_bookings_user ON bookings(user_id);
+CREATE INDEX IF NOT EXISTS idx_visit_prop ON visit_requests(property_id);
+`);
+
+set('pay_card_ir', '');
+set('pay_card_ir_enabled', '0');
+set('pay_card_am', '');
+set('pay_card_am_enabled', '0');
+set('pay_card_visa', '');
+set('pay_card_visa_enabled', '0');
+set('pay_card_note', 'پس از واریز پیش‌پرداخت، رسید را برای پشتیبانی ارسال کنید.');
+
+console.log('Amlak DB extended (bookings, invites, security)');
