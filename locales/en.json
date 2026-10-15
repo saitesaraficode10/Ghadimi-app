@@ -31,5 +31,7 @@
   "no_properties": "No properties found",
   "add_favorite": "Add to favorites",
   "remove_favorite": "Remove favorite",
-  "tagline": "Immigration | Travel | Accommodation"
+  "tagline": "Immigration | Travel | Accommodation",
+  "profile": "My profile",
+  "support": "Support"
 }
