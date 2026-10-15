@@ -1,20 +1,30 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ورود ادمین | Ghadimi</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <div class="auth-wrap">
-    <form method="POST" class="panel auth-card stack">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <form method="POST" action="/admin/login" class="panel auth-card stack" autocomplete="on">
+      <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
       <h1 style="margin:0;text-align:center">ورود ادمین</h1>
+      <p class="muted" style="text-align:center;margin:0">Ghadimi Amlak</p>
       <% if (error) { %><div class="alert"><%= error %></div><% } %>
-      <input class="input" name="username" placeholder="نام کاربری" required maxlength="40" autocomplete="username">
-      <input class="input" type="password" name="password" placeholder="رمز" required maxlength="72" autocomplete="current-password">
+      <div>
+        <label class="label">نام کاربری</label>
+        <input class="input" name="username" placeholder="admin1" required maxlength="40" autocomplete="username">
+      </div>
+      <div>
+        <label class="label">رمز عبور</label>
+        <input class="input" type="password" name="password" placeholder="رمز" required maxlength="72" autocomplete="current-password">
+      </div>
       <button class="btn btn-primary" type="submit">ورود</button>
+      <a href="/" class="muted" style="text-align:center">بازگشت به سایت</a>
     </form>
   </div>
-</body></html>
+</body>
+</html>
