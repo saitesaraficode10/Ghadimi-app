@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "init-db": "node utils/init-db.js"
+    "dev": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
