@@ -1,34 +1,54 @@
 <%- include('../partials/header') %>
-<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
-  <h1 style="margin:0">پنل ادمین</h1>
-  <a class="btn btn-ghost" href="/admin/logout">خروج</a>
-</div>
-<div class="stats" style="margin-top:1rem">
-  <div class="stat"><b><%= stats.properties %></b><span class="muted">کل ملک</span></div>
-  <div class="stat"><b style="color:#34d399"><%= stats.available %></b><span class="muted">آزاد</span></div>
-  <div class="stat"><b style="color:#fbbf24"><%= stats.pending %></b><span class="muted">درخواست باز</span></div>
-</div>
-<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
-  <a class="btn btn-primary" href="/admin/properties">مدیریت ملک‌ها</a>
-  <a class="btn btn-ghost" href="/admin/requests">درخواست‌های بازدید</a>
-  <a class="btn btn-ghost" href="/admin/bookings">رزروها</a>
-  <a class="btn btn-ghost" href="/admin/invites">دعوت ثبت‌نام</a>
-  <a class="btn btn-ghost" href="/admin/users">کاربران</a>
-  <a class="btn btn-ghost" href="/admin/settings">تنظیمات / واتساپ</a>
-</div>
-<div class="table-wrap panel" style="padding:0">
-  <table>
-    <thead><tr><th>کد</th><th>ملک</th><th>نام</th><th>وضعیت</th></tr></thead>
-    <tbody>
-      <% recent.forEach(r => { %>
-        <tr>
-          <td><a href="/admin/requests/<%= r.id %>" style="color:#34d399"><%= r.request_code %></a></td>
-          <td><%= r.title %></td>
-          <td><%= r.full_name %></td>
-          <td><%= r.status %></td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
+<div class="admin-shell">
+  <aside class="admin-side">
+    <div style="font-weight:800;margin-bottom:0.5rem;color:#f5e6a8">Ghadimi Panel</div>
+    <div class="side-title">مدیریت</div>
+    <a class="active" href="/admin">داشبورد</a>
+    <a href="/admin/properties">ملک‌ها</a>
+    <a href="/admin/properties/new">+ ملک جدید</a>
+    <a href="/admin/requests">درخواست بازدید</a>
+    <a href="/admin/bookings">رزروها</a>
+    <div class="side-title">کاربران</div>
+    <a href="/admin/users">لیست کاربران</a>
+    <a href="/admin/invites">دعوت ثبت‌نام</a>
+    <div class="side-title">سیستم</div>
+    <a href="/admin/settings">تنظیمات / پشتیبانی</a>
+    <a href="/" target="_blank">مشاهده سایت</a>
+    <a href="/admin/logout">خروج</a>
+  </aside>
+  <div class="admin-main">
+    <div class="admin-top">
+      <h1 style="margin:0">داشبورد</h1>
+      <span class="muted"><%= admin.username %></span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b><%= stats.properties %></b><span class="muted">کل ملک</span></div>
+      <div class="stat"><b style="color:#34d399"><%= stats.available %></b><span class="muted">آزاد</span></div>
+      <div class="stat"><b style="color:#fbbf24"><%= stats.pending %></b><span class="muted">درخواست باز</span></div>
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.75rem 0 1rem">
+      <a class="btn btn-primary" href="/admin/properties/new">افزودن ملک</a>
+      <a class="btn btn-ghost" href="/admin/requests">بررسی درخواست‌ها</a>
+      <a class="btn btn-ghost" href="/admin/settings">شماره و QR پشتیبانی</a>
+    </div>
+    <h2 style="font-size:1rem;margin:0 0 0.5rem">آخرین درخواست‌ها</h2>
+    <div class="table-wrap panel" style="padding:0">
+      <table>
+        <thead><tr><th>کد</th><th>ملک</th><th>نام</th><th>وضعیت</th></tr></thead>
+        <tbody>
+          <% if (recent && recent.length) { recent.forEach(r => { %>
+            <tr>
+              <td><a href="/admin/requests/<%= r.id %>" style="color:#34d399"><%= r.request_code %></a></td>
+              <td><%= r.title %></td>
+              <td><%= r.full_name %></td>
+              <td><%= r.status %></td>
+            </tr>
+          <% }) } else { %>
+            <tr><td colspan="4" class="muted" style="text-align:center;padding:1rem">موردی نیست</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 <%- include('../partials/footer') %>
