@@ -1,32 +1,30 @@
 <%- include('partials/header') %>
-<section class="hero">
-  <h1>تماس با ما</h1>
-  <p>برای هماهنگی بازدید و پشتیبانی از طریق واتساپ یا تماس در ارتباط باشید.</p>
-</section>
-<div class="two-col">
-  <div class="panel" style="text-align:center">
-    <h2 style="margin-top:0"><%= label %></h2>
-    <% if (qrUrl) { %>
-      <img src="<%= qrUrl %>" alt="WhatsApp QR" width="240" height="240" style="border-radius:16px;background:#fff;padding:10px;margin:0.75rem auto;display:block">
-      <p class="muted">QR را با گوشی اسکن کنید تا واتساپ باز شود</p>
+<h1>تماس با ما</h1>
+<p class="muted">برای هماهنگی بازدید و پشتیبانی در ارتباط باشید.</p>
+<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1rem">
+  <div class="panel stack" style="text-align:center">
+    <h2 style="margin:0;font-size:1.05rem"><%= label1 || 'پشتیبانی ۱' %></h2>
+    <% if (phone1) { %><p>تلفن: <b dir="ltr"><%= phone1 %></b></p><% } %>
+    <% if (wa1) { %><p>واتساپ: <b dir="ltr"><%= wa1 %></b></p><% } %>
+    <% if (qrUrl1) { %>
+      <img src="<%= qrUrl1 %>" alt="QR 1" width="220" height="220" style="border-radius:16px;background:#fff;padding:10px;margin:0.5rem auto;display:block">
+      <p class="muted">اسکن برای واتساپ</p>
+      <a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/<%= waDigits1 %>">چت واتساپ</a>
     <% } else { %>
-      <p class="muted">هنوز شماره واتساپ تنظیم نشده است.</p>
-    <% } %>
-    <% if (waDigits) { %>
-      <a class="btn btn-primary" href="https://wa.me/<%= waDigits %>" target="_blank" rel="noopener noreferrer">چت در واتساپ</a>
+      <p class="muted">شماره از پنل ادمین تنظیم نشده</p>
     <% } %>
   </div>
-  <div class="panel stack">
-    <div>
-      <div class="label">واتساپ</div>
-      <div style="font-size:1.15rem;font-weight:700"><%= wa || '—' %></div>
-    </div>
-    <div>
-      <div class="label">تلفن تماس</div>
-      <div style="font-size:1.15rem;font-weight:700"><%= phone || '—' %></div>
-    </div>
-    <p class="muted">لطفاً هنگام پیام، <b>کد مشتری</b> خود را هم ارسال کنید.</p>
-    <a class="btn btn-ghost" href="/">مشاهده ملک‌ها</a>
+  <div class="panel stack" style="text-align:center">
+    <h2 style="margin:0;font-size:1.05rem"><%= label2 || 'پشتیبانی ۲' %></h2>
+    <% if (phone2) { %><p>تلفن: <b dir="ltr"><%= phone2 %></b></p><% } %>
+    <% if (wa2) { %><p>واتساپ: <b dir="ltr"><%= wa2 %></b></p><% } %>
+    <% if (qrUrl2) { %>
+      <img src="<%= qrUrl2 %>" alt="QR 2" width="220" height="220" style="border-radius:16px;background:#fff;padding:10px;margin:0.5rem auto;display:block">
+      <p class="muted">اسکن برای واتساپ</p>
+      <a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/<%= waDigits2 %>">چت واتساپ</a>
+    <% } else { %>
+      <p class="muted">شماره دوم را در تنظیمات ادمین وارد کنید</p>
+    <% } %>
   </div>
 </div>
 <%- include('partials/footer') %>

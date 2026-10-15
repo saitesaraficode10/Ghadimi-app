@@ -3,37 +3,42 @@
   <div class="panel auth-card">
     <h1 style="margin-top:0;text-align:center"><%= t('register') %></h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
-    <form method="POST" class="stack">
+    <form method="POST" action="/register" class="stack">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <% if (typeof invite !== 'undefined' && invite) { %>
         <input type="hidden" name="invite_token" value="<%= invite.token %>">
-        <p class="muted">دعوت‌شده برای: <%= invite.phone %><% if (invite.full_name) { %> (<%= invite.full_name %>)<% } %></p>
+        <p class="muted">دعوت‌شده برای: <%= invite.phone %></p>
       <% } %>
       <div>
         <label class="label">نام و نام خانوادگی *</label>
         <input class="input" name="full_name" required maxlength="80">
       </div>
       <div>
-        <label class="label">شماره تماس *</label>
+        <label class="label">نام کاربری * (برای ورود)</label>
+        <input class="input" name="username" required maxlength="30" pattern="[A-Za-z0-9._]{3,30}" placeholder="مثلاً: aram2024" dir="ltr" style="text-align:left">
+        <p class="muted" style="font-size:0.75rem;margin:0.3rem 0 0">فقط انگلیسی، عدد، نقطه و _</p>
+      </div>
+      <div>
+        <label class="label">شماره تماس * (هر کشور)</label>
         <div class="phone-row">
           <select class="input" name="phone_cc" data-country-code data-prefer="+374"></select>
-          <input class="input" name="phone_local" required maxlength="15" placeholder="شماره بدون صفر اول">
+          <input class="input" name="phone_local" required maxlength="15" placeholder="شماره بدون صفر اول" dir="ltr">
         </div>
       </div>
       <div>
         <label class="label">شماره واتساپ *</label>
         <div class="phone-row">
           <select class="input" name="wa_cc" data-country-code data-prefer="+374"></select>
-          <input class="input" name="wa_local" required maxlength="15" placeholder="شماره بدون صفر اول">
+          <input class="input" name="wa_local" required maxlength="15" placeholder="شماره بدون صفر اول" dir="ltr">
         </div>
       </div>
       <div>
-        <label class="label">رمز عبور (حداقل ۶ کاراکتر) *</label>
+        <label class="label">رمز عبور (حداقل ۶) *</label>
         <input class="input" type="password" name="password" required minlength="6" maxlength="72">
       </div>
       <button class="btn btn-primary" style="width:100%"><%= t('register') %></button>
     </form>
-    <p class="muted" style="text-align:center;margin-top:1rem">کد مشتری به‌صورت خودکار از ۲۰۰ داده می‌شود.</p>
+    <p class="muted" style="text-align:center;margin-top:1rem"><a href="/login"><%= t('login') %></a></p>
   </div>
 </div>
 <%- include('partials/footer') %>

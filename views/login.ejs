@@ -3,10 +3,23 @@
   <div class="panel auth-card">
     <h1 style="margin-top:0;text-align:center"><%= t('login') %></h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
-    <form method="POST" class="stack">
+    <form method="POST" action="/login" class="stack">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <div><label class="label">شماره تماس ارمنی</label><input class="input" name="phone" required maxlength="20"></div>
-      <div><label class="label">رمز</label><input class="input" type="password" name="password" required minlength="6" maxlength="72"></div>
+      <div>
+        <label class="label">نام کاربری یا شماره تماس</label>
+        <input class="input" name="login_id" required maxlength="40" placeholder="username یا +374..." dir="ltr" style="text-align:left">
+      </div>
+      <div>
+        <label class="label">یا ورود با پیش‌شماره + شماره</label>
+        <div class="phone-row">
+          <select class="input" name="phone_cc" data-country-code data-prefer="+374"></select>
+          <input class="input" name="phone_local" maxlength="15" placeholder="اختیاری اگر بالا پر شد" dir="ltr">
+        </div>
+      </div>
+      <div>
+        <label class="label">رمز</label>
+        <input class="input" type="password" name="password" required minlength="6" maxlength="72">
+      </div>
       <button class="btn btn-primary" style="width:100%"><%= t('login') %></button>
     </form>
     <p class="muted" style="text-align:center;margin-top:1rem"><a href="/register"><%= t('register') %></a></p>
