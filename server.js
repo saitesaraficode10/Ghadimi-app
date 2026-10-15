@@ -9,6 +9,7 @@ const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./utils/db');
+const { applyWatermark } = require('./utils/watermark');
 const { authUser, authAdmin, optionalUser, JWT_SECRET } = require('./middleware/auth');
 const { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone, checkLoginLock, recordLoginFail, clearLoginFail, isHttps } = require('./middleware/security');
 
@@ -67,13 +68,18 @@ const upload = multer({
   }
 });
 
-function savePropertyImages(propertyId, files) {
+async function savePropertyImages(propertyId, files) {
   if (!files || !files.length) return;
+  const phone = getSetting('contact_phone', '') || getSetting('contact_whatsapp', '');
+  const site = getSetting('site_url', process.env.SITE_URL || '');
+  const logoPath = path.join(__dirname, 'public', 'logo-ghadimi-white.png');
   const ins = db.prepare('INSERT INTO property_images (property_id, path, sort_order) VALUES (?, ?, ?)');
-  files.forEach((f, i) => {
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const abs = path.join(uploadDir, f.filename);
+    try { await applyWatermark(abs, { phone, site, logoPath }); } catch (e) {}
     ins.run(propertyId, '/uploads/properties/' + f.filename, i);
-  });
-  // set cover if empty
+  }
   const prop = db.prepare('SELECT image_path FROM properties WHERE id = ?').get(propertyId);
   if (prop && !prop.image_path && files[0]) {
     db.prepare('UPDATE properties SET image_path = ? WHERE id = ?').run('/uploads/properties/' + files[0].filename, propertyId);
@@ -257,6 +263,7 @@ app.get('/favorites', authUser, (req, res) => {
 app.get('/register', (req, res) => res.render('register', { error: null, title: t(res.locals.lang, 'register') }));
 app.post('/register', authLimiter, async (req, res) => {
   const full_name = sanitizeText(req.body.full_name, 80);
+  let username = sanitizeText(req.body.username, 40).toLowerCase().replace(/\s+/g, '');
   const phone_cc = sanitizeText(req.body.phone_cc, 8) || '+374';
   const phone_local = sanitizeText(req.body.phone_local, 20).replace(/^0+/, '');
   const wa_cc = sanitizeText(req.body.wa_cc, 8) || phone_cc;
@@ -264,48 +271,73 @@ app.post('/register', authLimiter, async (req, res) => {
   const phone_am = (phone_cc + phone_local).replace(/\s/g, '');
   const whatsapp = (wa_cc + wa_local).replace(/\s/g, '');
   const password = String(req.body.password || '');
-  if (!full_name || !phone_local || !wa_local || password.length < 6) {
-    return res.render('register', { error: 'نام، شماره تماس، واتساپ و رمز (حداقل ۶) الزامی است', title: 'ثبت‌نام' });
+  if (!full_name || !username || !phone_local || !wa_local || password.length < 6) {
+    return res.render('register', { error: 'نام، نام کاربری، شماره تماس، واتساپ و رمز الزامی است', title: 'ثبت‌نام' });
+  }
+  if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+    return res.render('register', { error: 'نام کاربری: فقط حروف انگلیسی، عدد، نقطه و _ (۳ تا ۳۰)', title: 'ثبت‌نام' });
   }
   if (!isValidPhone(phone_am) || !isValidPhone(whatsapp)) {
     return res.render('register', { error: 'فرمت شماره تماس یا واتساپ نامعتبر است', title: 'ثبت‌نام' });
   }
   try {
+    if (db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(username)) {
+      return res.render('register', { error: 'این نام کاربری قبلاً گرفته شده', title: 'ثبت‌نام' });
+    }
     const hash = await bcrypt.hash(password, 12);
     const user_code = nextUserCode();
-    db.prepare("INSERT INTO users (user_code, full_name, phone_am, whatsapp, password_hash, last_seen) VALUES (?, ?, ?, ?, ?, datetime('now'))")
-      .run(user_code, full_name, phone_am, whatsapp, hash);
+    db.prepare("INSERT INTO users (user_code, username, full_name, phone_am, whatsapp, password_hash, last_seen) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))")
+      .run(user_code, username, full_name, phone_am, whatsapp, hash);
     const invite_token = sanitizeText(req.body.invite_token, 64);
     if (invite_token) {
-      try {
-        db.prepare("UPDATE invites SET used=1, used_at=datetime('now') WHERE token=? AND used=0").run(invite_token);
-      } catch (e) {}
+      try { db.prepare("UPDATE invites SET used=1, used_at=datetime('now') WHERE token=? AND used=0").run(invite_token); } catch (e) {}
     }
-    res.render('register-success', { user: null, user_code, title: 'ثبت‌نام موفق' });
+    res.render('register-success', { user: null, user_code, username, title: 'ثبت‌نام موفق' });
   } catch (e) {
     console.error(e.message);
-    res.render('register', { error: 'این شماره قبلاً ثبت شده یا خطا در ثبت', title: 'ثبت‌نام' });
+    res.render('register', { error: 'این شماره یا نام کاربری قبلاً ثبت شده', title: 'ثبت‌نام' });
   }
 });
 
 app.get('/login', (req, res) => res.render('login', { error: null, title: t(res.locals.lang, 'login') }));
 app.post('/login', authLimiter, async (req, res) => {
-  const phone = sanitizeText(req.body.phone, 20);
+  const login_id = sanitizeText(req.body.login_id || req.body.username || req.body.phone || '', 40).trim();
+  const phone_cc = sanitizeText(req.body.phone_cc, 8) || '';
+  const phone_local = sanitizeText(req.body.phone_local, 20).replace(/^0+/, '');
   const password = String(req.body.password || '');
-  const lockKey = 'user:' + phone;
+  const lockKey = 'user:' + (login_id || phone_local || 'x');
   try {
     const lock = checkLoginLock(db, lockKey);
     if (!lock.ok) return res.render('login', { error: 'حساب موقتاً قفل است. ' + lock.minutes + ' دقیقه صبر کنید', title: 'ورود' });
   } catch (e) {}
-  const user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone);
+
+  let user = null;
+  // 1) username
+  if (login_id) {
+    user = db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE').get(login_id.toLowerCase());
+  }
+  // 2) full phone from combined field
+  if (!user && login_id && (login_id.startsWith('+') || /^\d{8,15}$/.test(login_id))) {
+    const p = login_id.startsWith('+') ? login_id : ('+' + login_id);
+    user = db.prepare('SELECT * FROM users WHERE phone_am = ? OR phone_am = ?').get(p, login_id);
+  }
+  // 3) country code + local
+  if (!user && phone_local) {
+    const phone = ((phone_cc || '') + phone_local).replace(/\s/g, '');
+    user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone);
+    if (!user && !phone.startsWith('+')) {
+      user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get('+' + phone);
+    }
+  }
+
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     try { recordLoginFail(db, lockKey); } catch (e) {}
-    return res.render('login', { error: 'شماره یا رمز اشتباه', title: 'ورود' });
+    return res.render('login', { error: 'نام کاربری / شماره یا رمز اشتباه است', title: 'ورود' });
   }
   try { clearLoginFail(db, lockKey); } catch (e) {}
   try { db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(user.id); } catch (e) {}
   const token = jwt.sign({ id: user.id, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
-  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: isHttps(req), maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: isHttps(req), path: '/', maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.redirect('/');
 });
 
@@ -376,7 +408,7 @@ app.get('/admin/properties/new', authAdmin, (req, res) => {
 });
 
 app.post('/admin/properties/new', authAdmin, (req, res) => {
-  upload.array('images', 20)(req, res, (err) => {
+  upload.array('images', 20)(req, res, async (err) => {
     if (!checkCsrfAfterMulter(req, res)) return;
     if (err) {
       return res.render('admin/property-form', { admin: req.admin, property: null, images: [], error: err.message || 'خطا در آپلود تصویر', title: 'New' });
@@ -400,7 +432,7 @@ app.post('/admin/properties/new', authAdmin, (req, res) => {
         sanitizeText(b.contact_whatsapp, 30) || null, b.status || 'available', b.available_from || null,
         parseInt(b.max_people || '2', 10)
       );
-      savePropertyImages(info.lastInsertRowid, req.files || []);
+      await savePropertyImages(info.lastInsertRowid, req.files || []);
       res.redirect('/admin/properties');
     } catch (e) {
       console.error(e);
@@ -417,7 +449,7 @@ app.get('/admin/properties/:id/edit', authAdmin, (req, res) => {
 });
 
 app.post('/admin/properties/:id/edit', authAdmin, (req, res) => {
-  upload.array('images', 20)(req, res, (err) => {
+  upload.array('images', 20)(req, res, async (err) => {
     if (!checkCsrfAfterMulter(req, res)) return;
     const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
     if (!property) return res.redirect('/admin/properties');
@@ -445,7 +477,7 @@ app.post('/admin/properties/:id/edit', authAdmin, (req, res) => {
         sanitizeText(b.contact_whatsapp, 30) || null, b.status, b.available_from || null,
         parseInt(b.max_people || '2', 10), property.id
       );
-      savePropertyImages(property.id, req.files || []);
+      await savePropertyImages(property.id, req.files || []);
       // refresh cover
       const first = db.prepare('SELECT path FROM property_images WHERE property_id = ? ORDER BY sort_order, id LIMIT 1').get(property.id);
       if (first) db.prepare('UPDATE properties SET image_path = ? WHERE id = ?').run(first.path, property.id);
@@ -514,20 +546,36 @@ app.post('/admin/requests/:id/update', authAdmin, (req, res) => {
 
 
 app.get('/contact', optionalUser, (req, res) => {
-  const wa = getSetting('contact_whatsapp', '');
-  const phone = getSetting('contact_phone', '');
-  const label = getSetting('contact_label', 'پشتیبانی واتساپ');
-  const waDigits = String(wa).replace(/[^0-9]/g, '');
-  const qrUrl = waDigits ? ('https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent('https://wa.me/' + waDigits)) : '';
-  res.render('contact', { user: req.user, wa, phone, label, waDigits, qrUrl, title: 'تماس با ما' });
+  const wa1 = getSetting('contact_whatsapp', '');
+  const wa2 = getSetting('contact_whatsapp2', '');
+  const phone1 = getSetting('contact_phone', '');
+  const phone2 = getSetting('contact_phone2', '');
+  const label1 = getSetting('contact_label', 'پشتیبانی ۱');
+  const label2 = getSetting('contact_label2', 'پشتیبانی ۲');
+  const dig = (w) => String(w || '').replace(/[^0-9]/g, '');
+  const qr = (w) => {
+    const d = dig(w);
+    return d ? ('https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent('https://wa.me/' + d)) : '';
+  };
+  res.render('contact', {
+    user: req.user,
+    wa1, wa2, phone1, phone2, label1, label2,
+    waDigits1: dig(wa1), waDigits2: dig(wa2),
+    qrUrl1: qr(wa1), qrUrl2: qr(wa2),
+    title: 'تماس با ما'
+  });
 });
+
 
 app.get('/admin/settings', authAdmin, (req, res) => {
   res.render('admin/settings', {
     admin: req.admin,
     contact_whatsapp: getSetting('contact_whatsapp', ''),
+    contact_whatsapp2: getSetting('contact_whatsapp2', ''),
     contact_phone: getSetting('contact_phone', ''),
-    contact_label: getSetting('contact_label', 'پشتیبانی واتساپ'),
+    contact_phone2: getSetting('contact_phone2', ''),
+    contact_label: getSetting('contact_label', 'پشتیبانی ۱'),
+    contact_label2: getSetting('contact_label2', 'پشتیبانی ۲'),
     next_user_code: getSetting('next_user_code', '200'),
     pay_card_ir: getSetting('pay_card_ir', ''),
     pay_card_ir_enabled: getSetting('pay_card_ir_enabled', '0'),
@@ -536,14 +584,18 @@ app.get('/admin/settings', authAdmin, (req, res) => {
     pay_card_visa: getSetting('pay_card_visa', ''),
     pay_card_visa_enabled: getSetting('pay_card_visa_enabled', '0'),
     pay_card_note: getSetting('pay_card_note', ''),
+    site_url: getSetting('site_url', process.env.SITE_URL || ''),
     title: 'تنظیمات'
   });
 });
 
 app.post('/admin/settings', authAdmin, (req, res) => {
   setSetting('contact_whatsapp', sanitizeText(req.body.contact_whatsapp, 30));
+  setSetting('contact_whatsapp2', sanitizeText(req.body.contact_whatsapp2, 30));
   setSetting('contact_phone', sanitizeText(req.body.contact_phone, 30));
-  setSetting('contact_label', sanitizeText(req.body.contact_label, 80) || 'پشتیبانی واتساپ');
+  setSetting('contact_phone2', sanitizeText(req.body.contact_phone2, 30));
+  setSetting('contact_label', sanitizeText(req.body.contact_label, 80) || 'پشتیبانی ۱');
+  setSetting('contact_label2', sanitizeText(req.body.contact_label2, 80) || 'پشتیبانی ۲');
   const n = parseInt(req.body.next_user_code, 10);
   if (Number.isFinite(n) && n >= 200) setSetting('next_user_code', String(n));
   setSetting('pay_card_ir', sanitizeText(req.body.pay_card_ir, 40));
@@ -553,6 +605,7 @@ app.post('/admin/settings', authAdmin, (req, res) => {
   setSetting('pay_card_visa', sanitizeText(req.body.pay_card_visa, 40));
   setSetting('pay_card_visa_enabled', req.body.pay_card_visa_enabled === '1' ? '1' : '0');
   setSetting('pay_card_note', sanitizeText(req.body.pay_card_note, 500));
+  setSetting('site_url', sanitizeText(req.body.site_url, 120));
   res.redirect('/admin/settings');
 });
 
@@ -703,6 +756,11 @@ app.get('/invite/:token', (req, res) => {
 
 
 try { require('./utils/init-db'); } catch (e) { console.log('init:', e.message); }
+try {
+  const uc = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!uc.includes('username')) db.exec('ALTER TABLE users ADD COLUMN username TEXT');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+} catch (e) { console.log('username col:', e.message); }
 try {
   db.exec(`CREATE TABLE IF NOT EXISTS login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
