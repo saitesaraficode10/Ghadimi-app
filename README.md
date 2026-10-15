@@ -1,17 +1,19 @@
-# سایت اجاره خانه (Amlak)
+# Ghadimi Amlak
 
-- فقط ادمین ملک اضافه/حذف/ویرایش می‌کند
-- وضعیت آزاد / در اجاره + تاریخ آزاد شدن
-- درخواست بازدید: از کی نیاز دارد، مدت اجاره، تعداد نفرات
-- ادمین بعد از بررسی، زمان بازدید را تعیین می‌کند
-
-## اجرا
-```bash
-npm install
-node utils/init-db.js
-npm start
+## Render / Host env
+```
+NODE_ENV=production
+NODE_VERSION=20
+JWT_SECRET=your-long-secret
+ADMIN1_USERNAME=admin1
+ADMIN1_PASSWORD=Admin@123456
+ADMIN2_USERNAME=admin2
+ADMIN2_PASSWORD=Admin@654321
 ```
 
-ادمین: /admin/login
-- admin1 / Admin@123456
-- admin2 / Admin@654321
+Start: `node server.js`
+Admin: `/admin/login`
+
+## Data note
+SQLite file is in `db/amlak.db`. On free Render the disk can reset on redeploy/sleep.
+On a real VPS/host, data persists with the server files.
