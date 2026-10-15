@@ -10,7 +10,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./utils/db');
 const { authUser, authAdmin, optionalUser, JWT_SECRET } = require('./middleware/auth');
-const { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone, checkLoginLock, recordLoginFail, clearLoginFail } = require('./middleware/security');
+const { csrfToken, verifyCsrf, checkCsrfAfterMulter, sanitizeText, isValidPhone, checkLoginLock, recordLoginFail, clearLoginFail, isHttps } = require('./middleware/security');
+
+const ADMIN1_USER = process.env.ADMIN1_USERNAME || 'admin1';
+const ADMIN1_PASS = process.env.ADMIN1_PASSWORD || 'Admin@123456';
+const ADMIN2_USER = process.env.ADMIN2_USERNAME || 'admin2';
+const ADMIN2_PASS = process.env.ADMIN2_PASSWORD || 'Admin@654321';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -300,7 +305,7 @@ app.post('/login', authLimiter, async (req, res) => {
   try { clearLoginFail(db, lockKey); } catch (e) {}
   try { db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(user.id); } catch (e) {}
   const token = jwt.sign({ id: user.id, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
-  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: isHttps(req), maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.redirect('/');
 });
 
@@ -319,23 +324,31 @@ app.get('/my-requests', authUser, (req, res) => {
 // admin
 app.get('/admin/login', (req, res) => res.render('admin/login', { error: null, title: 'Admin' }));
 app.post('/admin/login', authLimiter, (req, res) => {
-  const username = sanitizeText(req.body.username, 40);
+  const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
   const lockKey = 'admin:' + username;
   try {
     const lock = checkLoginLock(db, lockKey);
-    if (!lock.ok) return res.render('admin/login', { error: 'قفل موقت: ' + lock.minutes + ' دقیقه', title: 'Admin' });
+    if (!lock.ok) return res.render('admin/login', { error: 'قفل موقت: ' + lock.minutes + ' دقیقه صبر کنید', title: 'Admin' });
   } catch (e) {}
+
   const ok =
-    (username === process.env.ADMIN1_USERNAME && password === process.env.ADMIN1_PASSWORD) ||
-    (username === process.env.ADMIN2_USERNAME && password === process.env.ADMIN2_PASSWORD);
+    (username === ADMIN1_USER && password === ADMIN1_PASS) ||
+    (username === ADMIN2_USER && password === ADMIN2_PASS);
+
   if (!ok) {
     try { recordLoginFail(db, lockKey); } catch (e) {}
-    return res.render('admin/login', { error: 'نام کاربری یا رمز اشتباه', title: 'Admin' });
+    return res.render('admin/login', { error: 'نام کاربری یا رمز اشتباه است', title: 'Admin' });
   }
   try { clearLoginFail(db, lockKey); } catch (e) {}
   const token = jwt.sign({ username, role: 'admin' }, JWT_SECRET, { expiresIn: '12h' });
-  res.cookie('admin_token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 12 * 60 * 60 * 1000 });
+  res.cookie('admin_token', token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isHttps(req),
+    path: '/',
+    maxAge: 12 * 60 * 60 * 1000
+  });
   res.redirect('/admin');
 });
 app.get('/admin/logout', (req, res) => { res.clearCookie('admin_token'); res.redirect('/admin/login'); });
@@ -690,12 +703,25 @@ app.get('/invite/:token', (req, res) => {
 
 
 try { require('./utils/init-db'); } catch (e) { console.log('init:', e.message); }
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL,
+    attempts INTEGER DEFAULT 0,
+    locked_until TEXT,
+    updated_at TEXT DEFAULT (datetime('now'))
+  )`);
+} catch (e) {}
 
 app.use((err, req, res, next) => {
   console.error('ERR', err && err.message);
   res.status(500).send('خطای سرور');
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log('Amlak server on port', PORT));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('Amlak server on port', PORT);
+  console.log('Admin login: /admin/login');
+  console.log('Admin1:', typeof ADMIN1_USER !== 'undefined' ? ADMIN1_USER : process.env.ADMIN1_USERNAME);
+});
 
 
