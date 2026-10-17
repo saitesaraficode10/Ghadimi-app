@@ -1,4 +1,14 @@
 (function () {
+  // Show/hide password
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-toggle-pw]');
+    if (!btn) return;
+    var id = btn.getAttribute('data-toggle-pw');
+    var inp = document.getElementById(id);
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  });
+
   // Theme
   var THEMES = {
     emerald: { accent: '#10b981', accent2: '#34d399', bg: '#0b1220' },
@@ -85,6 +95,11 @@
   }
 
   var INTENTS = [
+    {
+      keys: ['فیلتر', 'filter', 'جستجو', 'پیدا کردن', 'چطور پیدا', 'شهر'],
+      a: 'راهنمای فیلتر ملک:\n۱) شهر را از لیست انتخاب کنید (ایروان، گیومری، وانادزور، ...).\n۲) دسته: خانه یا مغازه.\n۳) نوع اجاره: روزانه / ۱–۳ ماه / ۶–۱۲ ماه / سالیانه.\n۴) اتاق و قیمت از–تا را در صورت نیاز پر کنید.\n۵) وضعیت را «همه» بگذارید اگر ملک نمی‌بینید.\n۶) دکمه فیلتر را بزنید. اگر خالی بود فیلترها را پاک کنید و فقط شهر را بزنید.'
+    },
+
     {
       keys: ['سلام', 'hello', 'hi', 'درود', 'بفرمایید', 'مرحبا', 'բարև'],
       a: 'سلام 👋 به املاک قدیمی خوش آمدید.\nمی‌توانم درباره ثبت‌نام، ورود، جستجوی خانه، درخواست بازدید، رزرو و تماس با پشتیبانی راهنمایی کنم.\nچه کاری دارید؟'
