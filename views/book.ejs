@@ -1,72 +1,82 @@
 <%- include('partials/header') %>
-<div class="admin-top">
-  <h1 style="margin:0">رزرو: <%= property.title %></h1>
-  <a class="btn btn-ghost" href="/property/<%= property.code %>"><%= t('back') %></a>
+<div class="cpanel-wrap">
+<aside class="cpanel-side">
+  <div class="side-brand">Ghadimi</div>
+  <a href="/"><%= t('home') %></a>
+  <a href="/my-bookings"><%= t('my_bookings') %></a>
+  <a href="/profile"><%= t('profile') %></a>
+  <a href="/contact"><%= t('contact') %></a>
+</aside>
+<div class="cpanel-main">
+  <h1 style="margin-top:0">رزرو: <%= property.title %></h1>
+  <p class="muted"><%= property.city %> · <%= Number(property.price_monthly).toLocaleString() %> <%= property.currency %></p>
+  <% if (error) { %><div class="alert"><%= error %></div><% } %>
+  <form method="POST" action="/book/<%= property.code %>" class="panel stack" style="max-width:560px" id="bookForm">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div>
+      <label class="label">نوع رزرو *</label>
+      <select class="input" name="rent_type" required>
+        <option value="daily"><%= t('rent_daily') %></option>
+        <option value="monthly" selected><%= t('monthly') %></option>
+        <option value="yearly"><%= t('rent_yearly') %></option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
+      <div><label class="label">از تاریخ *</label><input class="input date-input" type="date" name="start_date" required></div>
+      <div><label class="label">تا تاریخ</label><input class="input date-input" type="date" name="end_date"></div>
+    </div>
+    <div><label class="label">مبلغ پیش‌پرداخت</label><input class="input" type="number" name="amount" min="0"></div>
+    <div><label class="label">شماره پاسپورت</label><input class="input" name="passport_no" maxlength="40" dir="ltr"></div>
+    <div>
+      <label class="label">روش پرداخت *</label>
+      <select class="input" name="pay_method" id="payMethod" required>
+        <option value="cash"><%= t('pay_cash') %></option>
+        <option value="online"><%= t('pay_card') %></option>
+      </select>
+    </div>
+
+    <div id="cardPick" class="stack" style="display:none;gap:0.65rem;padding:0.75rem;border:1px solid rgba(52,211,153,0.3);border-radius:14px;background:rgba(0,0,0,0.25)">
+      <b>کارت مقصد را انتخاب کنید</b>
+      <% var has = false; %>
+      <% if (cards && cards.ir) { has = true; %>
+      <label class="bank-card ir">
+        <input type="radio" name="pay_card_type" value="ir"> <%= t('card_ir') %>
+        <div class="card-num" dir="ltr"><%= cards.ir %></div>
+      </label>
+      <% } %>
+      <% if (cards && cards.am) { has = true; %>
+      <label class="bank-card am">
+        <input type="radio" name="pay_card_type" value="am"> <%= t('card_am') %>
+        <div class="card-num" dir="ltr"><%= cards.am %></div>
+      </label>
+      <% } %>
+      <% if (cards && cards.visa) { has = true; %>
+      <label class="bank-card visa">
+        <input type="radio" name="pay_card_type" value="visa"> <%= t('card_visa') %>
+        <div class="card-num" dir="ltr"><%= cards.visa %></div>
+      </label>
+      <% } %>
+      <% if (!has) { %>
+        <div class="alert">ادمینی هنوز کارت ثبت نکرده. از پرداخت حضوری استفاده کنید یا با پشتیبانی هماهنگ کنید.</div>
+      <% } %>
+      <% if (cards && cards.note) { %><p class="muted"><%= cards.note %></p><% } %>
+    </div>
+
+    <button class="btn btn-primary" type="submit">ادامه / ثبت رزرو</button>
+  </form>
 </div>
-<p class="muted"><%= property.city %> · <%= Number(property.price_monthly).toLocaleString() %> <%= property.currency %></p>
-<% if (error) { %><div class="alert"><%= error %></div><% } %>
-<form method="POST" action="/book/<%= property.code %>" class="panel stack" style="max-width:560px;margin-top:1rem" id="bookForm">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <div>
-    <label class="label">نوع رزرو *</label>
-    <select class="input" name="rent_type" required>
-      <option value="daily"><%= t('rent_daily') %></option>
-      <option value="monthly" selected><%= t('monthly') %></option>
-      <option value="yearly"><%= t('rent_yearly') %></option>
-    </select>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
-    <div><label class="label">از تاریخ *</label><input class="input" type="date" name="start_date" required style="direction:ltr"></div>
-    <div><label class="label">تا تاریخ</label><input class="input" type="date" name="end_date" style="direction:ltr"></div>
-  </div>
-  <div><label class="label">مبلغ پیش‌پرداخت</label><input class="input" type="number" name="amount" min="0"></div>
-  <div><label class="label">شماره پاسپورت</label><input class="input" name="passport_no" maxlength="40" dir="ltr"></div>
-  <div>
-    <label class="label">روش پرداخت *</label>
-    <select class="input" name="pay_method" id="payMethod" required>
-      <option value="cash"><%= t('pay_cash') %></option>
-      <option value="online"><%= t('pay_card') %></option>
-    </select>
-  </div>
-  <div id="cardPick" class="stack" style="display:none;gap:0.6rem">
-    <label class="label">کارت مقصد را انتخاب کنید *</label>
-    <% var anyCard = false; %>
-    <% if (cards.ir) { anyCard = true; %>
-    <label class="bank-card ir" style="cursor:pointer">
-      <input type="radio" name="pay_card_type" value="ir" style="margin-inline-end:0.5rem">
-      <span><%= t('card_ir') %></span>
-      <div class="card-num" dir="ltr"><%= cards.ir %></div>
-    </label>
-    <% } %>
-    <% if (cards.am) { anyCard = true; %>
-    <label class="bank-card am" style="cursor:pointer">
-      <input type="radio" name="pay_card_type" value="am" style="margin-inline-end:0.5rem">
-      <span><%= t('card_am') %></span>
-      <div class="card-num" dir="ltr"><%= cards.am %></div>
-    </label>
-    <% } %>
-    <% if (cards.visa) { anyCard = true; %>
-    <label class="bank-card visa" style="cursor:pointer">
-      <input type="radio" name="pay_card_type" value="visa" style="margin-inline-end:0.5rem">
-      <span><%= t('card_visa') %></span>
-      <div class="card-num" dir="ltr"><%= cards.visa %></div>
-    </label>
-    <% } %>
-    <% if (!anyCard) { %>
-      <div class="alert">هنوز کارتی در تنظیمات ادمین ثبت نشده. از «پرداخت حضوری» استفاده کنید یا به ادمین بگویید کارت را در تنظیمات فعال کند.</div>
-    <% } %>
-    <% if (cards.note) { %><p class="muted"><%= cards.note %></p><% } %>
-  </div>
-  <button class="btn btn-primary" type="submit">ثبت درخواست رزرو</button>
-</form>
+</div>
 <script>
 (function(){
   var sel = document.getElementById('payMethod');
   var box = document.getElementById('cardPick');
   function sync(){
-    var online = sel.value === 'online';
-    box.style.display = online ? 'flex' : 'none';
-    box.style.flexDirection = 'column';
+    if (sel.value === 'online') {
+      box.style.display = 'flex';
+      box.style.flexDirection = 'column';
+    } else {
+      box.style.display = 'none';
+    }
   }
   sel.addEventListener('change', sync);
   sync();

@@ -76,7 +76,9 @@
 <div class="grid props">
   <% if (properties && properties.length) { properties.forEach(p => { %>
     <a class="prop-card" href="/property/<%= p.code %>">
-      <div class="prop-img" style="background-image:url('<%= p.image_path || '/logo-ghadimi.png' %>')"></div>
+      <div class="prop-img">
+        <img src="<%= p.cover_path || p.image_path || '/logo-ghadimi.png' %>" alt="<%= p.title %>" loading="lazy" onerror="this.src='/logo-ghadimi.png'">
+      </div>
       <div class="prop-body">
         <div style="font-weight:700"><%= p.title %></div>
         <div class="muted"><%= p.city %> · <%= p.rooms || '—' %> <%= t('rooms') %></div>

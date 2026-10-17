@@ -1,26 +1,29 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>رسید رزرو <%= booking.booking_code %></title>
   <style>
-    body{font-family:Tahoma,Arial,sans-serif;padding:1.25rem;max-width:720px;margin:0 auto;line-height:1.9;color:#111}
+    body{font-family:Tahoma,Arial,sans-serif;padding:1.25rem;max-width:720px;margin:0 auto;line-height:1.9;color:#111;background:#fff}
     .box{border:2px solid #222;border-radius:12px;padding:1.25rem}
-    .row{margin:0.4rem 0}.line{display:inline-block;min-width:8rem;border-bottom:1px solid #333;padding:0 0.3rem}
+    .row{margin:0.45rem 0}
+    .line{display:inline-block;min-width:10rem;border-bottom:1px solid #333;padding:0 0.35rem;min-height:1.2em}
     .chk{display:inline-block;width:1rem;height:1rem;border:1px solid #333;margin-inline:0.25rem;vertical-align:middle}
-    .chk.on{background:#111}.actions{margin-bottom:1rem}
-    @media print{.actions{display:none}}
+    .chk.on{background:#111}
+    .actions{margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap}
+    .actions button,.actions a{padding:0.55rem 1rem;font-size:1rem;cursor:pointer;border:1px solid #333;background:#f3f4f6;border-radius:8px;text-decoration:none;color:#111}
+    @media print{.actions{display:none !important} body{padding:0}}
   </style>
 </head>
 <body>
   <div class="actions">
-    <button onclick="window.print()">چاپ / ذخیره PDF</button>
+    <button type="button" id="btnPrint">چاپ / ذخیره PDF</button>
     <a href="/my-bookings">بازگشت</a>
   </div>
-  <div class="box">
+  <div class="box" id="printArea">
     <h2 style="text-align:center;margin-top:0">رسید رزرو ملک — Ghadimi</h2>
-    <div class="row">نام: <b><%= (user && user.full_name ? user.full_name.split(' ')[0] : '') %></b></div>
-    <div class="row">نام خانوادگی: <b><%= (user && user.full_name ? user.full_name.split(' ').slice(1).join(' ') : '') %></b></div>
+    <div class="row">نام و نام خانوادگی: <b><%= user ? user.full_name : '—' %></b></div>
     <div class="row">کد کاربری سایت: <b><%= user ? user.user_code : '—' %></b></div>
     <div class="row">شماره پاسپورت: <b dir="ltr"><%= booking.passport_no || '..................' %></b></div>
     <div class="row">نوع رزرو:
@@ -41,5 +44,10 @@
       توضیحات: در صورت پرداخت موفق برای رزرو ملک (روزانه، ماهانه و سالیانه) مبلغ به صاحب ملک پرداخت می‌شود و در صورت منصرف شدن به هر دلیل موجه یا غیرموجه مبلغی بازپس داده نمی‌شود و مسئولیتی متوجه دفتر نخواهد بود و تمام مسئولیت آن با خود شخص است.
     </p>
   </div>
+  <script>
+    document.getElementById('btnPrint').addEventListener('click', function () {
+      window.print();
+    });
+  </script>
 </body>
 </html>

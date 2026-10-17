@@ -40,39 +40,48 @@
   <form method="POST" action="/profile/password" class="panel stack" style="max-width:520px;margin-top:1rem">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <h2 style="margin:0;font-size:1rem"><%= t('change_password') %></h2>
-    <div>
-      <label class="label">Current</label>
-      <div class="pw-row">
-        <input class="input" type="password" name="current_password" id="curPw" required>
-        <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="curPw">👁</button>
-      </div>
+    <div class="pw-row">
+      <input class="input" type="password" name="current_password" id="curPw" required placeholder="current">
+      <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="curPw">👁</button>
     </div>
-    <div>
-      <label class="label">New (8+ letter & number)</label>
-      <div class="pw-row">
-        <input class="input" type="password" name="new_password" id="npw" required minlength="8">
-        <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="npw">👁</button>
-      </div>
+    <div class="pw-row">
+      <input class="input" type="password" name="new_password" id="npw" required minlength="8" placeholder="new">
+      <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="npw">👁</button>
     </div>
     <button class="btn btn-primary" type="submit"><%= t('change_password') %></button>
   </form>
 
-  <div class="panel stack" style="max-width:520px;margin-top:1rem">
+  <div class="panel stack" style="max-width:560px;margin-top:1rem">
     <h2 style="margin:0;font-size:1rem"><%= t('invite') %></h2>
     <form method="POST" action="/profile/invite">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <button class="btn btn-primary" type="submit">+ <%= t('invite') %></button>
     </form>
     <% if (typeof invites !== 'undefined' && invites && invites.length) { %>
-      <ul style="padding-inline-start:1.2rem;margin:0.5rem 0 0">
-        <% invites.forEach(inv => { %>
-          <li dir="ltr" style="font-family:monospace;margin:0.25rem 0"><b><%= inv.code %></b> · used: <%= inv.used_count || 0 %></li>
-        <% }) %>
-      </ul>
+      <% invites.forEach(inv => { %>
+        <div class="panel" style="background:rgba(0,0,0,0.2);margin-top:0.5rem">
+          <div dir="ltr" style="font-family:monospace;font-weight:700"><%= inv.code %></div>
+          <div class="muted">ثبت‌نام با این کد: <b><%= inv.used_count || 0 %></b></div>
+          <div class="muted" style="font-size:0.8rem;word-break:break-all" dir="ltr">
+            Link: <%= (typeof baseUrl !== 'undefined' ? baseUrl : '') %>/r/<%= inv.code %>
+          </div>
+          <button type="button" class="btn btn-ghost" style="margin-top:0.35rem" onclick="navigator.clipboard && navigator.clipboard.writeText('<%= (typeof baseUrl !== 'undefined' ? baseUrl : '') %>/r/<%= inv.code %>')">Copy link</button>
+        </div>
+      <% }) %>
     <% } else { %>
-      <p class="muted">—</p>
+      <p class="muted">کدی نساخته‌اید</p>
     <% } %>
+    <p class="muted">مجموع دعوت‌های موفق: <b><%= typeof totalInvites !== 'undefined' ? totalInvites : 0 %></b></p>
   </div>
 </div>
 </div>
+<script>
+document.querySelectorAll('[data-toggle-pw]').forEach(function(btn){
+  btn.addEventListener('click', function(e){
+    e.preventDefault();
+    var inp = document.getElementById(btn.getAttribute('data-toggle-pw'));
+    if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
+  });
+});
+</script>
 <%- include('partials/footer') %>

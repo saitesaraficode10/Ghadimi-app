@@ -33,6 +33,10 @@
         </div>
       </div>
       <div>
+        <label class="label"><%= t('invite') %> (اختیاری)</label>
+        <input class="input" name="invite_code" maxlength="40" dir="ltr" placeholder="INV..." value="<%= (typeof inviteCode !== 'undefined' && inviteCode) ? inviteCode : '' %>">
+      </div>
+      <div>
         <label class="label">رمز عبور (حداقل ۶) *</label>
         <div class="pw-row">
         <input class="input" type="password" name="password" id="regPw" required minlength="8" maxlength="72">

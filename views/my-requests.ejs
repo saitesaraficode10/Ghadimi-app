@@ -1,4 +1,17 @@
 <%- include('partials/header') %>
+<div class="cpanel-wrap">
+<aside class="cpanel-side">
+  <div class="side-brand">Ghadimi</div>
+  <a href="/"><%= t('home') %></a>
+  <a href="/profile"><%= t('profile') %></a>
+  <a href="/my-requests"><%= t('my_requests') %></a>
+  <a href="/my-bookings"><%= t('my_bookings') %></a>
+  <a href="/favorites"><%= t('favorites') %></a>
+  <a href="/notifications"><%= t('notifications') %></a>
+  <a href="/contact"><%= t('contact') %></a>
+  <a href="/logout"><%= t('logout') %></a>
+</aside>
+<div class="cpanel-main">
 <div class="admin-top">
   <h1 style="margin:0"><%= t('my_requests') %></h1>
   <a class="btn btn-ghost" href="/"><%= t('back') %></a>
@@ -26,4 +39,8 @@
   </table>
 </div>
 <% if (!requests.length) { %><p class="muted" style="text-align:center;padding:2rem">—</p><% } %>
+
+
+</div>
+</div>
 <%- include('partials/footer') %>

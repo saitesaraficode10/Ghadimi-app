@@ -1,4 +1,17 @@
 <%- include('partials/header') %>
+<div class="cpanel-wrap">
+<aside class="cpanel-side">
+  <div class="side-brand">Ghadimi</div>
+  <a href="/"><%= t('home') %></a>
+  <a href="/profile"><%= t('profile') %></a>
+  <a href="/my-requests"><%= t('my_requests') %></a>
+  <a href="/my-bookings"><%= t('my_bookings') %></a>
+  <a href="/favorites"><%= t('favorites') %></a>
+  <a href="/notifications"><%= t('notifications') %></a>
+  <a href="/contact"><%= t('contact') %></a>
+  <a href="/logout"><%= t('logout') %></a>
+</aside>
+<div class="cpanel-main">
 <h1>رزروهای من</h1>
 <div class="table-wrap panel" style="padding:0;margin-top:1rem">
   <table>
@@ -18,4 +31,8 @@
   </table>
 </div>
 <% if (!rows.length) { %><p class="muted" style="text-align:center;padding:2rem">رزروی ندارید</p><% } %>
+
+
+</div>
+</div>
 <%- include('partials/footer') %>
