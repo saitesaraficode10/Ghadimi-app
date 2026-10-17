@@ -29,10 +29,11 @@
         </span>
       </div>
     <% } else { %>
-      <a class="brand" href="<%= typeof admin !== 'undefined' && admin ? '/admin' : '/' %>" style="display:flex;align-items:center;gap:0.5rem;text-decoration:none">
+      <a class="brand" href="<%= typeof admin !== 'undefined' && admin ? '/admin' : '/dashboard' %>" style="display:flex;align-items:center;gap:0.5rem;text-decoration:none">
         <img src="/logo-ghadimi-white.png" alt="Ghadimi" class="brand-logo" width="120" height="36" onerror="this.src='/logo-nav.png'">
       </a>
       <div class="nav-links">
+        <% if (typeof user !== 'undefined' && user) { %><a href="/dashboard"><%= t('dashboard') %></a><% } %>
         <span class="lang">
           <a href="/set-lang/fa" class="<%= lang==='fa'?'active':'' %>">FA</a>
           <a href="/set-lang/en" class="<%= lang==='en'?'active':'' %>">EN</a>

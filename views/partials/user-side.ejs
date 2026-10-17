@@ -1,0 +1,13 @@
+<aside class="cpanel-side">
+  <div class="side-brand">Ghadimi · <%= t('user_panel') %></div>
+  <div class="side-title"><%= t('quick_access') %></div>
+  <a href="/dashboard" class="<%= typeof activeNav!=='undefined' && activeNav==='dashboard'?'active':'' %>"><%= t('dashboard') %></a>
+  <a href="/" class="<%= typeof activeNav!=='undefined' && activeNav==='home'?'active':'' %>"><%= t('listings') %></a>
+  <a href="/my-requests" class="<%= typeof activeNav!=='undefined' && activeNav==='requests'?'active':'' %>"><%= t('my_requests') %></a>
+  <a href="/my-bookings" class="<%= typeof activeNav!=='undefined' && activeNav==='bookings'?'active':'' %>"><%= t('my_bookings') %></a>
+  <a href="/favorites" class="<%= typeof activeNav!=='undefined' && activeNav==='favorites'?'active':'' %>"><%= t('favorites') %></a>
+  <a href="/notifications" class="<%= typeof activeNav!=='undefined' && activeNav==='notifications'?'active':'' %>"><%= t('notifications') %></a>
+  <a href="/profile" class="<%= typeof activeNav!=='undefined' && activeNav==='profile'?'active':'' %>"><%= t('profile') %></a>
+  <a href="/contact" class="<%= typeof activeNav!=='undefined' && activeNav==='contact'?'active':'' %>"><%= t('contact') %></a>
+  <a href="/logout"><%= t('logout') %></a>
+</aside>
