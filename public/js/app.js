@@ -1,13 +1,23 @@
 (function () {
-  // Show/hide password
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-toggle-pw]');
-    if (!btn) return;
-    var id = btn.getAttribute('data-toggle-pw');
-    var inp = document.getElementById(id);
-    if (!inp) return;
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-  });
+  // Show/hide password (works for admin + user)
+  function bindPwEyes() {
+    document.querySelectorAll('[data-toggle-pw]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var id = btn.getAttribute('data-toggle-pw');
+        var inp = document.getElementById(id);
+        if (!inp) return;
+        if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+        else { inp.type = 'password'; btn.textContent = '👁'; }
+      });
+    });
+  }
+  bindPwEyes();
+  document.addEventListener('DOMContentLoaded', bindPwEyes);
+  setTimeout(bindPwEyes, 300);
 
   // Theme
   var THEMES = {
