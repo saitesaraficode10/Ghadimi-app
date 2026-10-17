@@ -1,45 +1,78 @@
 <%- include('partials/header') %>
-<div class="admin-top">
-  <h1 style="margin:0"><%= t('profile') %></h1>
-  <a class="btn btn-ghost" href="/"><%= t('back') %></a>
+<div class="cpanel-wrap">
+<aside class="cpanel-side">
+  <div class="side-brand">Ghadimi</div>
+  <a href="/"><%= t('home') %></a>
+  <a href="/profile" class="active"><%= t('profile') %></a>
+  <a href="/my-requests"><%= t('my_requests') %></a>
+  <a href="/my-bookings"><%= t('my_bookings') %></a>
+  <a href="/favorites"><%= t('favorites') %></a>
+  <a href="/notifications"><%= t('notifications') %></a>
+  <a href="/contact"><%= t('contact') %></a>
+  <a href="/logout"><%= t('logout') %></a>
+</aside>
+<div class="cpanel-main">
+  <h1 style="margin-top:0"><%= t('profile') %></h1>
+  <p class="muted">Code: <b><%= user.user_code %></b> · <%= t('username') %>: <b dir="ltr"><%= user.username || '—' %></b></p>
+  <% if (error) { %><div class="alert"><%= error %></div><% } %>
+  <% if (ok) { %><div class="alert" style="background:rgba(52,211,153,0.15);color:#6ee7b7"><%= ok %></div><% } %>
+
+  <form method="POST" action="/profile" class="panel stack" style="max-width:520px">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div><label class="label">Name</label><input class="input" name="full_name" required value="<%= user.full_name %>"></div>
+    <div>
+      <label class="label"><%= t('phone') %></label>
+      <div class="phone-row">
+        <select class="input" name="phone_cc" data-country-code data-prefer="+374"></select>
+        <input class="input" name="phone_local" required dir="ltr" value="<%= (user.phone_am||'').replace(/^\+\d{1,3}/,'') %>">
+      </div>
+    </div>
+    <div>
+      <label class="label"><%= t('whatsapp') %></label>
+      <div class="phone-row">
+        <select class="input" name="wa_cc" data-country-code data-prefer="+374"></select>
+        <input class="input" name="wa_local" required dir="ltr" value="<%= (user.whatsapp||'').replace(/^\+\d{1,3}/,'') %>">
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit"><%= t('submit') %></button>
+  </form>
+
+  <form method="POST" action="/profile/password" class="panel stack" style="max-width:520px;margin-top:1rem">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <h2 style="margin:0;font-size:1rem"><%= t('change_password') %></h2>
+    <div>
+      <label class="label">Current</label>
+      <div class="pw-row">
+        <input class="input" type="password" name="current_password" id="curPw" required>
+        <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="curPw">👁</button>
+      </div>
+    </div>
+    <div>
+      <label class="label">New (8+ letter & number)</label>
+      <div class="pw-row">
+        <input class="input" type="password" name="new_password" id="npw" required minlength="8">
+        <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="npw">👁</button>
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit"><%= t('change_password') %></button>
+  </form>
+
+  <div class="panel stack" style="max-width:520px;margin-top:1rem">
+    <h2 style="margin:0;font-size:1rem"><%= t('invite') %></h2>
+    <form method="POST" action="/profile/invite">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn btn-primary" type="submit">+ <%= t('invite') %></button>
+    </form>
+    <% if (typeof invites !== 'undefined' && invites && invites.length) { %>
+      <ul style="padding-inline-start:1.2rem;margin:0.5rem 0 0">
+        <% invites.forEach(inv => { %>
+          <li dir="ltr" style="font-family:monospace;margin:0.25rem 0"><b><%= inv.code %></b> · used: <%= inv.used_count || 0 %></li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">—</p>
+    <% } %>
+  </div>
 </div>
-<p class="muted">کد: <b><%= user.user_code %></b> · <%= t('username') %>: <b dir="ltr"><%= user.username || '—' %></b></p>
-<% if (error) { %><div class="alert"><%= error %></div><% } %>
-<% if (ok) { %><div class="alert" style="background:rgba(52,211,153,0.15);color:#6ee7b7"><%= ok %></div><% } %>
-<form method="POST" action="/profile" class="panel stack" style="max-width:520px;margin-top:1rem">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <div><label class="label">نام</label><input class="input" name="full_name" required value="<%= user.full_name %>"></div>
-  <div>
-    <label class="label"><%= t('phone') %></label>
-    <div class="phone-row">
-      <select class="input" name="phone_cc" data-country-code data-prefer="+374"></select>
-      <input class="input" name="phone_local" required dir="ltr" value="<%= (user.phone_am||'').replace(/^\+\d{1,3}/,'') %>">
-    </div>
-  </div>
-  <div>
-    <label class="label"><%= t('whatsapp') %></label>
-    <div class="phone-row">
-      <select class="input" name="wa_cc" data-country-code data-prefer="+374"></select>
-      <input class="input" name="wa_local" required dir="ltr" value="<%= (user.whatsapp||'').replace(/^\+\d{1,3}/,'') %>">
-    </div>
-  </div>
-  <button class="btn btn-primary" type="submit">ذخیره</button>
-</form>
-<form method="POST" action="/profile/password" class="panel stack" style="max-width:520px;margin-top:1rem">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <h2 style="margin:0;font-size:1rem"><%= t('change_password') %></h2>
-  <div><label class="label">رمز فعلی</label>
-    <div style="display:flex;gap:0.35rem"><input class="input" type="password" name="current_password" id="curPw" required style="flex:1"><button type="button" class="btn btn-ghost" data-toggle-pw="curPw">👁</button></div>
-  </div>
-  <div><label class="label">رمز جدید (۸+ حرف و عدد)</label>
-    <div style="display:flex;gap:0.35rem"><input class="input" type="password" name="new_password" id="npw" required minlength="8" style="flex:1"><button type="button" class="btn btn-ghost" data-toggle-pw="npw">👁</button></div>
-  </div>
-  <button class="btn btn-primary" type="submit"><%= t('change_password') %></button>
-</form>
-<form method="POST" action="/profile/invite" class="panel" style="max-width:520px;margin-top:1rem">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <button class="btn btn-soft" type="submit">ساخت <%= t('invite') %></button>
-  <p class="muted" style="margin-top:0.5rem">کد دعوت را از پشتیبانی یا پس از ساخت در اعلان‌ها پیگیری کنید؛ ادمین هم می‌بیند.</p>
-</form>
-<a class="btn btn-ghost" href="/notifications" style="margin-top:0.75rem"><%= t('notifications') %></a>
+</div>
 <%- include('partials/footer') %>

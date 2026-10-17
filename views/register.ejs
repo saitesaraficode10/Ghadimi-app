@@ -34,7 +34,11 @@
       </div>
       <div>
         <label class="label">رمز عبور (حداقل ۶) *</label>
-        <input class="input" type="password" name="password" required minlength="6" maxlength="72">
+        <div class="pw-row">
+        <input class="input" type="password" name="password" id="regPw" required minlength="8" maxlength="72">
+        <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="regPw">👁</button>
+      </div>
+      <p class="muted" style="font-size:0.75rem">حداقل ۸ کاراکتر، حرف و عدد</p>
       </div>
       <button class="btn btn-primary" style="width:100%"><%= t('register') %></button>
     </form>
