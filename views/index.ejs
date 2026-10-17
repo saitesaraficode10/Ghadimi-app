@@ -1,69 +1,91 @@
 <%- include('partials/header') %>
 <section class="hero-card">
-  <h1 style="margin:0 0 0.4rem">Ghadimi</h1>
-  <p class="muted" style="margin:0">Immigration | Travel | Accommodation — اقامت مطمئن در ارمنستان</p>
+  <h1 style="margin:0 0 0.4rem"><%= t('site_name') %></h1>
+  <p class="muted" style="margin:0"><%= t('tagline') %></p>
   <div class="theme-bar" style="margin-top:0.9rem">
-    <span class="muted" style="font-size:0.8rem">تم رنگی:</span>
-    <button type="button" class="theme-dot" data-theme="emerald" title="زمردی"></button>
-    <button type="button" class="theme-dot" data-theme="ocean" title="اقیانوسی"></button>
-    <button type="button" class="theme-dot" data-theme="violet" title="بنفش"></button>
-    <button type="button" class="theme-dot" data-theme="rose" title="رز"></button>
-    <button type="button" class="theme-dot" data-theme="gold" title="طلایی"></button>
-    <button type="button" class="theme-dot" data-theme="midnight" title="نیمه‌شب"></button>
+    <span class="muted" style="font-size:0.8rem">Theme:</span>
+    <button type="button" class="theme-dot" data-theme="emerald"></button>
+    <button type="button" class="theme-dot" data-theme="ocean"></button>
+    <button type="button" class="theme-dot" data-theme="violet"></button>
+    <button type="button" class="theme-dot" data-theme="rose"></button>
+    <button type="button" class="theme-dot" data-theme="gold"></button>
+    <button type="button" class="theme-dot" data-theme="midnight"></button>
   </div>
 </section>
 
 <div class="stats-bar">
-  <div class="stat-card"><b><%= typeof onlineNow !== 'undefined' ? onlineNow : '—' %></b><span class="muted">آنلاین الان</span></div>
-  <div class="stat-card"><b><%= typeof pageViews !== 'undefined' ? Number(pageViews).toLocaleString('fa-IR') : '—' %></b><span class="muted">بازدید صفحات</span></div>
-  <div class="stat-card"><b><%= typeof uniqueVisitors !== 'undefined' ? Number(uniqueVisitors).toLocaleString('fa-IR') : '—' %></b><span class="muted">بازدیدکننده</span></div>
+  <div class="stat-card"><b><%= typeof onlineNow !== 'undefined' ? onlineNow : '—' %></b><span class="muted">Online</span></div>
+  <div class="stat-card"><b><%= typeof pageViews !== 'undefined' ? Number(pageViews).toLocaleString() : '—' %></b><span class="muted">Views</span></div>
+  <div class="stat-card"><b><%= typeof uniqueVisitors !== 'undefined' ? Number(uniqueVisitors).toLocaleString() : '—' %></b><span class="muted">Visitors</span></div>
 </div>
 
-<p class="muted" style="margin:0 0 0.75rem">برای دیدن جزئیات، گالری عکس و رزرو باید وارد حساب شوید.</p>
-<form class="filters" method="GET">
-  <input class="input" name="city" value="<%= filters.city || '' %>" placeholder="<%= t('city') %>">
-  <input class="input" name="rooms" type="number" min="1" value="<%= filters.rooms || '' %>" placeholder="<%= t('rooms') %>+">
-  <input class="input" name="area_from" type="number" value="<%= filters.area_from || '' %>" placeholder="<%= t('area') %>+">
-  <input class="input" name="price_from" type="number" value="<%= filters.price_from || '' %>" placeholder="<%= t('price_from') %>">
-  <input class="input" name="price_to" type="number" value="<%= filters.price_to || '' %>" placeholder="<%= t('price_to') %>">
-  <select class="input" name="status">
-    <option value=""><%= t('all') %></option>
-    <option value="available" <%= filters.status==='available'?'selected':'' %>><%= t('available') %></option>
-    <option value="rented" <%= filters.status==='rented'?'selected':'' %>><%= t('rented') %></option>
-    <option value="reserved" <%= filters.status==='reserved'?'selected':'' %>><%= t('reserved') %></option>
-  </select>
-  <button class="btn btn-primary" style="grid-column:1/-1"><%= t('filter') %></button>
+<form class="filters panel" method="GET" style="margin:1rem 0;padding:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.5rem">
+  <div>
+    <label class="label"><%= t('city') %></label>
+    <select class="input" name="city">
+      <option value=""><%= t('all') %></option>
+      <% (typeof cities !== 'undefined' ? cities : ['Yerevan','Gyumri','Vanadzor','Dilijan','Sevan']).forEach(c => { %>
+        <option value="<%= c %>" <%= filters.city===c?'selected':'' %>><%= c %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div>
+    <label class="label"><%= t('category') %></label>
+    <select class="input" name="category">
+      <option value=""><%= t('all') %></option>
+      <option value="house" <%= filters.category==='house'?'selected':'' %>><%= t('house') %></option>
+      <option value="shop" <%= filters.category==='shop'?'selected':'' %>><%= t('shop') %></option>
+    </select>
+  </div>
+  <div>
+    <label class="label"><%= t('rent_duration') %></label>
+    <select class="input" name="rent_period">
+      <option value=""><%= t('all') %></option>
+      <option value="daily" <%= filters.rent_period==='daily'?'selected':'' %>><%= t('rent_daily') %></option>
+      <option value="monthly_1_3" <%= filters.rent_period==='monthly_1_3'?'selected':'' %>><%= t('rent_1_3') %></option>
+      <option value="monthly_6_12" <%= filters.rent_period==='monthly_6_12'?'selected':'' %>><%= t('rent_6_12') %></option>
+      <option value="yearly" <%= filters.rent_period==='yearly'?'selected':'' %>><%= t('rent_yearly') %></option>
+    </select>
+  </div>
+  <div>
+    <label class="label"><%= t('rooms') %></label>
+    <input class="input" name="rooms" type="number" min="0" value="<%= filters.rooms || '' %>" placeholder="+">
+  </div>
+  <div>
+    <label class="label"><%= t('price_from') %></label>
+    <input class="input" name="price_from" type="number" min="0" value="<%= filters.price_from || '' %>">
+  </div>
+  <div>
+    <label class="label"><%= t('price_to') %></label>
+    <input class="input" name="price_to" type="number" min="0" value="<%= filters.price_to || '' %>">
+  </div>
+  <div>
+    <label class="label"><%= t('status') %></label>
+    <select class="input" name="status">
+      <option value=""><%= t('all') %></option>
+      <option value="available" <%= filters.status==='available'?'selected':'' %>><%= t('available') %></option>
+      <option value="reserved" <%= filters.status==='reserved'?'selected':'' %>><%= t('reserved') %></option>
+      <option value="rented" <%= filters.status==='rented'?'selected':'' %>><%= t('rented') %></option>
+    </select>
+  </div>
+  <div style="display:flex;align-items:end">
+    <button class="btn btn-primary" type="submit" style="width:100%"><%= t('filter') %></button>
+  </div>
 </form>
 
-<div class="grid-cards">
-  <% properties.forEach(p => { %>
-    <article class="card">
-      <a href="/property/<%= p.code %>">
-        <% if (p.image_path) { %>
-          <span class="img-wm-wrap">
-            <img class="card-img" src="<%= p.image_path %>" alt="<%= p.title %>" loading="lazy">
-            <img class="wm" src="/logo-nav.png" alt="">
-          </span>
-        <% } else { %>
-          <div class="card-img" style="display:flex;align-items:center;justify-content:center;color:#6b7280">No image</div>
-        <% } %>
-        <div class="card-body">
-          <div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:start">
-            <h2 style="margin:0;font-size:1.05rem"><%= p.title %></h2>
-            <span class="badge <%= p.status==='available'?'badge-ok':'badge-warn' %>"><%= statusLabel(p.status) %></span>
-          </div>
-          <p class="muted" style="margin:0.4rem 0 0"><%= p.city %><% if (p.rooms) { %> · <%= p.rooms %> <%= t('rooms') %><% } %><% if (p.area) { %> · <%= p.area %> m²<% } %></p>
-          <div class="price"><%= Number(p.price_monthly).toLocaleString('fa-IR') %> <%= p.currency %> / <%= t('monthly') %></div>
-        </div>
-      </a>
-      <% if (typeof user !== 'undefined' && user) { %>
-        <form method="POST" action="/favorites/<%= p.code %>/toggle">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="fav-btn" type="submit"><%= favIds.has(p.id) ? '♥' : '♡' %></button>
-        </form>
-      <% } %>
-    </article>
-  <% }) %>
+<div class="grid props">
+  <% if (properties && properties.length) { properties.forEach(p => { %>
+    <a class="prop-card" href="/property/<%= p.code %>">
+      <div class="prop-img" style="background-image:url('<%= p.image_path || '/logo-ghadimi.png' %>')"></div>
+      <div class="prop-body">
+        <div style="font-weight:700"><%= p.title %></div>
+        <div class="muted"><%= p.city %> · <%= p.rooms || '—' %> <%= t('rooms') %></div>
+        <div style="color:var(--accent2);font-weight:800"><%= Number(p.price_monthly||0).toLocaleString() %> <%= p.currency || 'AMD' %></div>
+        <div class="muted" style="font-size:0.75rem"><%= statusLabel(p.status || 'available') %> · <%= p.category || 'house' %></div>
+      </div>
+    </a>
+  <% }) } else { %>
+    <p class="muted" style="grid-column:1/-1;text-align:center;padding:2rem"><%= t('no_properties') %></p>
+  <% } %>
 </div>
-<% if (!properties.length) { %><p class="muted" style="text-align:center;padding:2.5rem 0"><%= t('no_properties') %></p><% } %>
 <%- include('partials/footer') %>

@@ -3,26 +3,43 @@
   <div class="panel auth-card">
     <h1 style="margin-top:0;text-align:center"><%= t('login') %></h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
-    <form method="POST" action="/login" class="stack">
+    <div style="display:flex;gap:0.4rem;margin-bottom:0.75rem">
+      <button type="button" class="btn btn-ghost" id="modeUser" style="flex:1">Username</button>
+      <button type="button" class="btn btn-ghost" id="modePhone" style="flex:1">Phone</button>
+    </div>
+    <form method="POST" action="/login" class="stack" id="loginForm">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <div>
-        <label class="label">نام کاربری یا شماره تماس</label>
-        <input class="input" name="login_id" required maxlength="40" placeholder="username یا +374..." dir="ltr" style="text-align:left">
+      <div id="boxUser">
+        <label class="label"><%= t('username') %></label>
+        <input class="input" name="login_id" id="loginId" maxlength="40" dir="ltr" style="text-align:left" autocomplete="username">
       </div>
-      <div>
-        <label class="label">یا ورود با پیش‌شماره + شماره</label>
+      <div id="boxPhone" style="display:none">
+        <label class="label"><%= t('phone') %></label>
         <div class="phone-row">
           <select class="input" name="phone_cc" data-country-code data-prefer="+374"></select>
-          <input class="input" name="phone_local" maxlength="15" placeholder="اختیاری اگر بالا پر شد" dir="ltr">
+          <input class="input" name="phone_local" id="phoneLocal" maxlength="15" dir="ltr">
         </div>
       </div>
       <div>
-        <label class="label">رمز</label>
-        <input class="input" type="password" name="password" required minlength="6" maxlength="72">
+        <label class="label"><%= t('password') %></label>
+        <div style="display:flex;gap:0.35rem">
+          <input class="input" type="password" name="password" id="loginPw" required minlength="6" maxlength="72" style="flex:1">
+          <button type="button" class="btn btn-ghost" data-toggle-pw="loginPw">👁</button>
+        </div>
       </div>
       <button class="btn btn-primary" style="width:100%"><%= t('login') %></button>
     </form>
     <p class="muted" style="text-align:center;margin-top:1rem"><a href="/register"><%= t('register') %></a></p>
   </div>
 </div>
+<script>
+(function(){
+  var u=document.getElementById('modeUser'), p=document.getElementById('modePhone');
+  var bu=document.getElementById('boxUser'), bp=document.getElementById('boxPhone');
+  var lid=document.getElementById('loginId'), pl=document.getElementById('phoneLocal');
+  function userMode(){ bu.style.display='block'; bp.style.display='none'; if(pl) pl.value=''; lid.required=true; }
+  function phoneMode(){ bu.style.display='none'; bp.style.display='block'; if(lid) lid.value=''; lid.required=false; }
+  u.addEventListener('click', userMode); p.addEventListener('click', phoneMode); userMode();
+})();
+</script>
 <%- include('partials/footer') %>

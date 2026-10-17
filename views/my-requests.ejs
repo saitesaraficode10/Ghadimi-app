@@ -1,9 +1,13 @@
 <%- include('partials/header') %>
-<h1><%= t('my_requests') %></h1>
+<div class="admin-top">
+  <h1 style="margin:0"><%= t('my_requests') %></h1>
+  <a class="btn btn-ghost" href="/"><%= t('back') %></a>
+</div>
 <div class="table-wrap panel" style="padding:0;margin-top:1rem">
   <table>
     <thead><tr>
-      <th>کد</th><th>ملک</th><th>از تاریخ</th><th>مدت</th><th>نفرات</th><th>وضعیت</th><th>زمان بازدید</th><th>محل</th>
+      <th><%= t('tracking_code') %></th><th>Property</th><th><%= t('need_from') %></th><th><%= t('rent_duration') %></th>
+      <th><%= t('people_count') %></th><th><%= t('status') %></th><th>Visit</th><th>Location</th>
     </tr></thead>
     <tbody>
       <% requests.forEach(r => { %>
@@ -13,7 +17,7 @@
           <td><%= r.need_from %></td>
           <td><%= r.rent_duration %></td>
           <td><%= r.people_count %></td>
-          <td><%= r.status %></td>
+          <td><%= statusLabel(r.status) %></td>
           <td><%= r.visit_datetime || '—' %></td>
           <td><%= r.visit_location || '—' %></td>
         </tr>
@@ -21,5 +25,5 @@
     </tbody>
   </table>
 </div>
-<% if (!requests.length) { %><p class="muted" style="text-align:center;padding:2rem">درخواستی ندارید</p><% } %>
+<% if (!requests.length) { %><p class="muted" style="text-align:center;padding:2rem">—</p><% } %>
 <%- include('partials/footer') %>
