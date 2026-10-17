@@ -4,6 +4,7 @@ const db = require('../utils/db');
 const JWT_SECRET = process.env.JWT_SECRET || 'amlak-ghadimi-jwt-secret-change-in-production-min32';
 
 function authUser(req, res, next) {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   try {
     const token = req.cookies && req.cookies.token;
     if (!token) return res.redirect('/login');
@@ -32,6 +33,7 @@ function optionalUser(req, res, next) {
 }
 
 function authAdmin(req, res, next) {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   try {
     const token = req.cookies && req.cookies.admin_token;
     if (!token) return res.redirect('/admin/login');
