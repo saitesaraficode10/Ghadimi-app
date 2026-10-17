@@ -436,7 +436,7 @@ app.post('/login', authLimiter, async (req, res) => {
   try { db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(user.id); } catch (e) {}
   const token = jwt.sign({ id: user.id, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
   res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: isHttps(req), path: '/', maxAge: 7 * 24 * 60 * 60 * 1000 });
-  res.redirect('/');
+  res.redirect('/dashboard');
 });
 
 app.get('/logout', (req, res) => {
@@ -812,6 +812,16 @@ app.post('/api/presence', optionalUser, (req, res) => {
     try { db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(req.user.id); } catch (e) {}
   }
   res.json({ ok: true, online: smartOnlineCount() });
+});
+
+
+app.get('/dashboard', authUser, (req, res) => {
+  let stats = { requests: 0, bookings: 0, favorites: 0, unread: 0 };
+  try { stats.requests = db.prepare('SELECT COUNT(*) AS c FROM visit_requests WHERE user_id = ?').get(req.user.id).c; } catch (e) {}
+  try { stats.bookings = db.prepare('SELECT COUNT(*) AS c FROM bookings WHERE user_id = ?').get(req.user.id).c; } catch (e) {}
+  try { stats.favorites = db.prepare('SELECT COUNT(*) AS c FROM favorites WHERE user_id = ?').get(req.user.id).c; } catch (e) {}
+  try { stats.unread = db.prepare('SELECT COUNT(*) AS c FROM notifications WHERE user_id = ? AND is_read = 0').get(req.user.id).c; } catch (e) {}
+  res.render('dashboard', { user: req.user, stats, title: t(res.locals.lang, 'dashboard') });
 });
 
 app.get('/profile', authUser, (req, res) => {
