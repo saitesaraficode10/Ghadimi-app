@@ -1,39 +1,45 @@
 <%- include('../partials/header') %>
-<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
-  <h1 style="margin:0">کاربران</h1>
-  <a class="btn btn-ghost" href="/admin">داشبورد</a>
-</div>
-<div class="table-wrap panel" style="padding:0;margin-top:1rem">
-  <table>
-    <thead>
-      <tr>
-        <th>کد</th><th>نام</th><th>تلفن</th><th>واتساپ</th><th>وضعیت</th><th>آخرین آنلاین</th><th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% users.forEach(u => { %>
-        <tr>
-          <td><b style="color:var(--accent2)"><%= u.user_code %></b></td>
-          <td><%= u.full_name %></td>
-          <td><%= u.phone_am %></td>
-          <td><%= u.whatsapp %></td>
-          <td>
-            <% if (isOnline(u.last_seen)) { %>
-              <span class="online-dot"></span>آنلاین
-            <% } else { %>
-              <span class="offline-dot"></span>آفلاین
-            <% } %>
-          </td>
-          <td class="muted"><%= u.last_seen || '—' %></td>
-          <td>
-            <form method="POST" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('کاربر حذف شود؟');">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <button class="btn btn-ghost" type="submit" style="color:#fca5a5;padding:0.25rem 0.6rem">حذف</button>
-            </form>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
+<div class="admin-shell">
+  <aside class="admin-side">
+    <div class="side-title">Admin</div>
+    <a href="/admin">داشبورد</a>
+    <a href="/admin/properties">ملک‌ها</a>
+    <a href="/admin/requests">درخواست‌ها</a>
+    <a href="/admin/bookings">رزروها</a>
+    <a class="active" href="/admin/users">کاربران</a>
+    <a href="/admin/notifications">اعلان‌ها</a>
+    <a href="/admin/settings">تنظیمات</a>
+  </aside>
+  <div class="admin-main">
+    <div class="admin-top">
+      <h1 style="margin:0">کاربران</h1>
+      <a class="btn btn-ghost" href="/admin"><%= t('back') %></a>
+    </div>
+    <div class="table-wrap panel" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>کد</th><th>نام</th><th>یوزرنیم</th><th>تلفن</th><th>کد دعوت</th><th>استفاده</th><th>عضو شده</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(u => { %>
+            <tr>
+              <td><a href="/admin/users/<%= u.id %>" style="color:var(--accent2)"><b><%= u.user_code %></b></a></td>
+              <td><%= u.full_name %></td>
+              <td dir="ltr"><%= u.username || '—' %></td>
+              <td dir="ltr"><%= u.phone_am %></td>
+              <td><%= u.invite_codes || 0 %></td>
+              <td><%= u.invite_uses || 0 %></td>
+              <td><%= u.invite_signups || 0 %></td>
+              <td>
+                <a class="btn btn-ghost" href="/admin/users/<%= u.id %>" style="padding:0.25rem 0.6rem">جزئیات</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 <%- include('../partials/footer') %>
