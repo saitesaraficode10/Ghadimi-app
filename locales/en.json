@@ -67,5 +67,11 @@
   "i_paid": "I paid",
   "i_cancel": "Cancel / did not pay",
   "print_receipt": "Print receipt",
-  "save_pdf": "Save PDF"
+  "save_pdf": "Save PDF",
+  "online_now": "Online now",
+  "page_views": "Page views",
+  "visitors": "Visitors",
+  "user_panel": "My panel",
+  "listings": "Listings",
+  "quick_access": "Quick access"
 }

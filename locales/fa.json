@@ -67,5 +67,11 @@
   "i_paid": "واریز کردم",
   "i_cancel": "واریز نکردم / لغو",
   "print_receipt": "چاپ رسید",
-  "save_pdf": "ذخیره PDF"
+  "save_pdf": "ذخیره PDF",
+  "online_now": "آنلاین الان",
+  "page_views": "بازدید صفحات",
+  "visitors": "بازدیدکننده",
+  "user_panel": "پنل من",
+  "listings": "آگهی‌ها",
+  "quick_access": "دسترسی سریع"
 }

@@ -67,5 +67,11 @@
   "i_paid": "Վճարել եմ",
   "i_cancel": "Չեղարկել",
   "print_receipt": "Տպել",
-  "save_pdf": "PDF"
+  "save_pdf": "PDF",
+  "online_now": "Այժմ առցանց",
+  "page_views": "Դիտումներ",
+  "visitors": "Այցելուներ",
+  "user_panel": "Իմ վահանակը",
+  "listings": "Հայտարարություններ",
+  "quick_access": "Արագ մուտք"
 }

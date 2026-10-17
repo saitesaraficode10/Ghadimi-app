@@ -67,5 +67,11 @@
   "i_paid": "Я оплатил",
   "i_cancel": "Отмена",
   "print_receipt": "Печать",
-  "save_pdf": "PDF"
+  "save_pdf": "PDF",
+  "online_now": "Сейчас онлайн",
+  "page_views": "Просмотры",
+  "visitors": "Посетители",
+  "user_panel": "Моя панель",
+  "listings": "Объявления",
+  "quick_access": "Быстрый доступ"
 }
