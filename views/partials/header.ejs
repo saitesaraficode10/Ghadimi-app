@@ -5,31 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index,follow">
   <meta name="description" content="Ghadimi — Immigration | Travel | Accommodation">
-  <meta property="og:title" content="<%= title %> | Ghadimi">
-  <meta property="og:site_name" content="Ghadimi">
   <title><%= title %> | Ghadimi</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="/logo-nav.png">
 </head>
-<body data-logged-in="<%= (typeof user !== 'undefined' && user) ? '1' : '0' %>">
-<header class="nav">
+<body data-logged-in="<%= (typeof user !== 'undefined' && user) ? '1' : ((typeof admin !== 'undefined' && admin) ? '1' : '0') %>">
+<header class="nav <%= (typeof user !== 'undefined' && user) || (typeof admin !== 'undefined' && admin) ? 'compact' : '' %>">
   <div class="container nav-inner">
-    <a class="brand" href="/" style="display:flex;align-items:center;gap:0.65rem;text-decoration:none">
-      <img src="/logo-ghadimi-white.png" alt="Ghadimi" class="brand-logo" width="200" height="56" onerror="this.src='/logo-nav.png'">
+    <a class="brand" href="<%= (typeof admin !== 'undefined' && admin) ? '/admin' : '/' %>" style="display:flex;align-items:center;gap:0.65rem;text-decoration:none">
+      <img src="/logo-ghadimi-white.png" alt="Ghadimi" class="brand-logo" width="180" height="52" onerror="this.src='/logo-nav.png'">
     </a>
     <div class="nav-links">
-      <a href="/"><%= t('home') %></a>
-      <a href="/contact">تماس</a>
-      <% if (typeof user !== 'undefined' && user) { %>
+      <% if (typeof admin !== 'undefined' && admin) { %>
+        <a href="/admin">Panel</a>
+        <a href="/admin/notifications"><%= t('notifications') %></a>
+        <a href="/admin/logout"><%= t('logout') %></a>
+      <% } else if (typeof user !== 'undefined' && user) { %>
+        <a href="/"><%= t('home') %></a>
         <a href="/profile"><%= t('profile') %></a>
         <a href="/notifications"><%= t('notifications') %></a>
-        <a href="/my-bookings"><%= t('my_bookings') %></a>
-        
-        <a href="/my-requests"><%= t('my_requests') %></a>
-        <a href="/favorites"><%= t('favorites') %></a>
         <a href="/logout"><%= t('logout') %></a>
       <% } else { %>
+        <a href="/"><%= t('home') %></a>
+        <a href="/contact"><%= t('contact') %></a>
         <a href="/login"><%= t('login') %></a>
         <a class="btn btn-primary" href="/register" style="padding:0.4rem 0.9rem"><%= t('register') %></a>
       <% } %>
@@ -42,4 +41,4 @@
     </div>
   </div>
 </header>
-<main class="container" style="padding-top:1.25rem;padding-bottom:2rem">
+<main class="container" style="padding-top:1rem;padding-bottom:2rem">
