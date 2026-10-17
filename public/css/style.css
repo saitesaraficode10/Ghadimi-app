@@ -267,3 +267,39 @@ th { background: rgba(255,255,255,0.04); color: var(--muted); font-weight: 600; 
 .pw-eye { min-width: 2.6rem; flex-shrink: 0; }
 /* compact top nav when logged in cpanel pages still show minimal brand */
 .nav.compact .nav-links a:not(.lang a) { font-size: 0.85rem; }
+
+.grid.props { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem; }
+.prop-card {
+  display:block; border-radius:16px; overflow:hidden; background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08); text-decoration:none; color:inherit;
+  transition: transform .15s ease, border-color .15s;
+}
+.prop-card:hover { transform: translateY(-2px); border-color: rgba(52,211,153,0.35); }
+.prop-img {
+  height: 180px; background-size: cover; background-position: center;
+  background-color: #1e293b; background-repeat: no-repeat;
+}
+.prop-img img { width:100%; height:180px; object-fit:cover; display:block; }
+.prop-body { padding: 0.85rem 1rem 1rem; }
+
+/* Date picker visible on dark UI */
+input[type="date"], input[type="time"], input[type="datetime-local"] {
+  color-scheme: dark;
+  min-height: 2.75rem;
+  color: #f8fafc !important;
+  background: rgba(15,23,42,0.9) !important;
+  border: 1px solid rgba(148,163,184,0.45) !important;
+  direction: ltr;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 1 !important;
+  cursor: pointer;
+  filter: invert(1) brightness(1.4);
+  padding: 0.25rem;
+  background: rgba(255,255,255,0.15);
+  border-radius: 6px;
+}
+
+.nav-lang-only .nav-inner { justify-content: space-between; }
+.nav-lang-only .nav-links { margin-inline-start: auto; }
+.mode-btn.active { background: rgba(52,211,153,0.25) !important; color: #6ee7b7 !important; border-color: rgba(52,211,153,0.5); }
