@@ -246,6 +246,22 @@ app.get('/', optionalUser, (req, res) => {
   if (req.user) {
     try { favIds = new Set(db.prepare('SELECT property_id FROM favorites WHERE user_id = ?').all(req.user.id).map(r => r.property_id)); } catch (e) {}
   }
+  // attach cover for listing cards
+  try {
+    const imgStmt = db.prepare('SELECT path FROM property_images WHERE property_id = ? ORDER BY sort_order, id LIMIT 1');
+    properties = properties.map(pr => {
+      let cover = pr.image_path;
+      if (!cover) {
+        try {
+          const row = imgStmt.get(pr.id);
+          if (row) cover = row.path;
+        } catch (e) {}
+      }
+      return Object.assign({}, pr, { cover_path: cover || '/logo-ghadimi.png' });
+    });
+  } catch (e) {
+    properties = properties.map(pr => Object.assign({}, pr, { cover_path: pr.image_path || '/logo-ghadimi.png' }));
+  }
   const viewStats = bumpViews();
   res.render('index', {
     user: req.user, properties, favIds, cities: CITIES,
@@ -321,7 +337,10 @@ app.get('/favorites', authUser, (req, res) => {
 });
 
 // auth
-app.get('/register', (req, res) => res.render('register', { error: null, title: t(res.locals.lang, 'register') }));
+app.get('/register', (req, res) => res.render('register', { error: null, inviteCode: req.query.ref || '', title: t(res.locals.lang, 'register') }));
+app.get('/r/:code', (req, res) => {
+  res.redirect('/register?ref=' + encodeURIComponent(String(req.params.code || '').toUpperCase()));
+});
 app.post('/register', authLimiter, async (req, res) => {
   const full_name = sanitizeText(req.body.full_name, 80);
   let username = sanitizeText(req.body.username, 40).toLowerCase().replace(/\s+/g, '');
@@ -355,7 +374,22 @@ app.post('/register', authLimiter, async (req, res) => {
     if (invite_token) {
       try { db.prepare("UPDATE invites SET used=1, used_at=datetime('now') WHERE token=? AND used=0").run(invite_token); } catch (e) {}
     }
-    try { notifyAdmin('ثبت‌نام جدید', full_name + ' / ' + username + ' / ' + phone_am, '/admin/users'); } catch (e) {}
+    const invite_code = sanitizeText(req.body.invite_code, 40).toUpperCase();
+    if (invite_code) {
+      try {
+        const inv = db.prepare('SELECT * FROM user_invites WHERE code = ? COLLATE NOCASE').get(invite_code);
+        if (inv) {
+          db.prepare('UPDATE user_invites SET used_count = COALESCE(used_count,0) + 1 WHERE id = ?').run(inv.id);
+          const newUser = db.prepare('SELECT id FROM users WHERE user_code = ?').get(user_code);
+          db.prepare('INSERT INTO invite_signups (invite_code, inviter_user_id, new_user_id) VALUES (?, ?, ?)').run(invite_code, inv.user_id, newUser ? newUser.id : null);
+        }
+      } catch (e) { console.log('invite_code', e.message); }
+    }
+    try {
+      ensureNotificationsTable();
+      notifyAdmin('ثبت‌نام جدید', full_name + ' | ' + username + ' | ' + phone_am, '/admin/users');
+      console.log('notifyAdmin signup ok');
+    } catch (e) { console.log('notifyAdmin fail', e.message); }
     res.render('register-success', { user: null, user_code, username, title: 'ثبت‌نام موفق' });
   } catch (e) {
     console.error(e.message);
@@ -751,11 +785,23 @@ app.post('/profile/invite', authUser, (req, res) => {
     console.error('invite', e.message);
     return res.render('profile', { user: req.user, invites: [], error: 'خطا در ساخت کد دعوت: ' + e.message, ok: null, title: 'پروفایل' });
   }
-  res.render('profile', { user: req.user, invites, error: null, ok: 'کد دعوت ساخته شد: ' + code, title: 'پروفایل' });
+  const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+  let totalInvites = 0;
+  try { totalInvites = db.prepare('SELECT COUNT(*) AS c FROM invite_signups WHERE inviter_user_id = ?').get(req.user.id).c; } catch (e) {}
+  res.render('profile', { user: req.user, invites, totalInvites, baseUrl, error: null, ok: 'کد دعوت ساخته شد: ' + code, title: 'پروفایل' });
 });
 
 app.get('/admin/users', authAdmin, (req, res) => {
-  const users = db.prepare('SELECT id, user_code, full_name, phone_am, whatsapp, created_at, last_seen FROM users ORDER BY user_code ASC').all();
+  const users = db.prepare('SELECT id, user_code, username, full_name, phone_am, whatsapp, created_at, last_seen FROM users ORDER BY user_code ASC').all();
+  users.forEach(u => {
+    try {
+      const inv = db.prepare('SELECT COUNT(*) AS c, COALESCE(SUM(used_count),0) AS uses FROM user_invites WHERE user_id = ?').get(u.id);
+      u.invite_codes = inv ? inv.c : 0;
+      u.invite_uses = inv ? inv.uses : 0;
+      const sig = db.prepare('SELECT COUNT(*) AS c FROM invite_signups WHERE inviter_user_id = ?').get(u.id);
+      u.invite_signups = sig ? sig.c : 0;
+    } catch (e) { u.invite_codes = 0; u.invite_uses = 0; u.invite_signups = 0; }
+  });
   res.render('admin/users', { admin: req.admin, users, isOnline, title: 'کاربران' });
 });
 
@@ -770,8 +816,11 @@ app.post('/api/presence', optionalUser, (req, res) => {
 
 app.get('/profile', authUser, (req, res) => {
   let invites = [];
+  let totalInvites = 0;
   try { invites = db.prepare('SELECT * FROM user_invites WHERE user_id = ? ORDER BY id DESC').all(req.user.id); } catch (e) {}
-  res.render('profile', { user: req.user, invites, error: null, ok: null, title: 'پروفایل من' });
+  try { totalInvites = db.prepare('SELECT COUNT(*) AS c FROM invite_signups WHERE inviter_user_id = ?').get(req.user.id).c; } catch (e) {}
+  const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+  res.render('profile', { user: req.user, invites, totalInvites, baseUrl, error: null, ok: null, title: 'پروفایل من' });
 });
 
 app.post('/profile', authUser, (req, res) => {
@@ -849,7 +898,8 @@ app.post('/book/:code', authUser, (req, res) => {
   const booking = db.prepare('SELECT * FROM bookings WHERE booking_code = ?').get(booking_code);
   if (pay_method === 'online') {
     const cardNum = cards[pay_card_type] || '';
-    return res.render('book-pending', { user: req.user, booking, cardNum, title: 'در انتظار پرداخت' });
+    const waDigits = String(getSetting('contact_whatsapp','') || getSetting('contact_phone','')).replace(/[^0-9]/g,'');
+    return res.render('book-pending', { user: req.user, booking, cardNum, waDigits, title: 'در انتظار پرداخت' });
   }
   res.render('book-success', { user: req.user, booking_code, pay_method, cards, property, title: 'رزرو ثبت شد' });
 });
@@ -991,6 +1041,13 @@ try {
     user_id INTEGER NOT NULL,
     code TEXT UNIQUE NOT NULL,
     used_count INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+  db.exec(`CREATE TABLE IF NOT EXISTS invite_signups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invite_code TEXT NOT NULL,
+    inviter_user_id INTEGER,
+    new_user_id INTEGER,
     created_at TEXT DEFAULT (datetime('now'))
   )`);
 } catch (e) {}
