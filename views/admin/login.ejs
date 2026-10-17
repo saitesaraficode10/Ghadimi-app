@@ -29,5 +29,16 @@
       <a href="/" class="muted" style="text-align:center">بازگشت به سایت</a>
     </form>
   </div>
+<script src="/js/app.js"></script>
+<script>
+document.querySelectorAll('[data-toggle-pw]').forEach(function(btn){
+  btn.addEventListener('click', function(e){
+    e.preventDefault();
+    var inp = document.getElementById(btn.getAttribute('data-toggle-pw'));
+    if(!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  });
+});
+</script>
 </body>
 </html>
