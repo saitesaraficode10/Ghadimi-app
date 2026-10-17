@@ -303,3 +303,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .nav-lang-only .nav-inner { justify-content: space-between; }
 .nav-lang-only .nav-links { margin-inline-start: auto; }
 .mode-btn.active { background: rgba(52,211,153,0.25) !important; color: #6ee7b7 !important; border-color: rgba(52,211,153,0.5); }
+.mode-btn { border: 1px solid rgba(255,255,255,0.15) !important; }
+.mode-btn.active {
+  background: rgba(52,211,153,0.28) !important;
+  color: #a7f3d0 !important;
+  border-color: rgba(52,211,153,0.55) !important;
+  box-shadow: 0 0 0 1px rgba(52,211,153,0.25);
+}
+#boxUser, #boxPhone { min-height: 4.5rem; }
