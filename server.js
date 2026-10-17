@@ -151,9 +151,32 @@ function t(lang, key) {
 }
 
 function statusLabel(lang, s) {
-  const map = { available: 'available', rented: 'rented', reserved: 'reserved' };
-  return t(lang, map[s] || s);
+  const keys = new Set(['available','rented','reserved','pending','approved','rejected','completed','cancelled','pending_payment','paid','confirmed']);
+  if (keys.has(s)) return t(lang, s);
+  return s || '—';
 }
+
+function notify(userId, title, body, link) {
+  try {
+    db.prepare('INSERT INTO notifications (user_id, title, body, link) VALUES (?, ?, ?, ?)').run(userId || null, title, body || '', link || '');
+  } catch (e) { console.log('notify', e.message); }
+}
+
+function notifyAdmin(title, body, link) {
+  try {
+    db.prepare('INSERT INTO notifications (user_id, title, body, link, for_admin) VALUES (NULL, ?, ?, ?, 1)').run(title, body || '', link || '');
+  } catch (e) { console.log('notifyAdmin', e.message); }
+}
+
+function passwordStrength(pw) {
+  const s = String(pw || '');
+  if (s.length < 8) return { ok: false, msg: 'رمز حداقل ۸ کاراکتر باشد' };
+  if (!/[A-Za-z]/.test(s) || !/[0-9]/.test(s)) return { ok: false, msg: 'رمز باید حرف و عدد داشته باشد' };
+  return { ok: true };
+}
+
+const CITIES = ['Yerevan','Gyumri','Vanadzor','Dilijan','Tsaghkadzor','Sevan','Kapan','Armavir','Abovyan','Hrazdan','Ashtarak','Ijevan','Artashat','Goris','Jermuk'];
+
 
 app.use((req, res, next) => {
   const lang = ['fa', 'en', 'ru', 'hy'].includes(req.cookies.lang) ? req.cookies.lang : 'fa';
@@ -172,33 +195,38 @@ app.get('/set-lang/:lang', (req, res) => {
 
 // ---- Public listings with full filters ----
 app.get('/', optionalUser, (req, res) => {
-  const { city = '', status = '', rooms = '', price_from = '', price_to = '', area_from = '' } = req.query;
+  const { city = '', status = '', rooms = '', price_from = '', price_to = '', area_from = '', category = '', rent_period = '' } = req.query;
   let sql = 'SELECT * FROM properties WHERE 1=1';
   const params = [];
-  if (city) { sql += ' AND city LIKE ?'; params.push('%' + city + '%'); }
+  if (city) { sql += ' AND LOWER(COALESCE(city,"")) LIKE LOWER(?)'; params.push('%' + city.trim() + '%'); }
   if (status) { sql += ' AND status = ?'; params.push(status); }
-  if (rooms) { sql += ' AND rooms >= ?'; params.push(parseInt(rooms, 10)); }
-  if (price_from) { sql += ' AND price_monthly >= ?'; params.push(parseFloat(price_from)); }
-  if (price_to) { sql += ' AND price_monthly <= ?'; params.push(parseFloat(price_to)); }
-  if (area_from) { sql += ' AND area >= ?'; params.push(parseFloat(area_from)); }
+  if (rooms) { sql += ' AND CAST(COALESCE(rooms,0) AS REAL) >= ?'; params.push(parseFloat(rooms) || 0); }
+  if (price_from) { sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) >= ?'; params.push(parseFloat(price_from) || 0); }
+  if (price_to) { sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) <= ?'; params.push(parseFloat(price_to) || 0); }
+  if (area_from) { sql += ' AND (area IS NULL OR CAST(area AS REAL) >= ?)'; params.push(parseFloat(area_from) || 0); }
+  if (category) { sql += ' AND COALESCE(category, "house") = ?'; params.push(category); }
+  if (rent_period) { sql += ' AND (rent_period IS NULL OR rent_period = "" OR rent_period = ?)'; params.push(rent_period); }
   sql += ' ORDER BY created_at DESC';
-  const properties = db.prepare(sql).all(...params);
-
+  let properties = [];
+  try { properties = db.prepare(sql).all(...params); } catch (e) {
+    console.error('filter', e.message);
+    try { properties = db.prepare('SELECT * FROM properties ORDER BY created_at DESC').all(); } catch (e2) {}
+  }
   let favIds = new Set();
   if (req.user) {
-    favIds = new Set(db.prepare('SELECT property_id FROM favorites WHERE user_id = ?').all(req.user.id).map(r => r.property_id));
+    try { favIds = new Set(db.prepare('SELECT property_id FROM favorites WHERE user_id = ?').all(req.user.id).map(r => r.property_id)); } catch (e) {}
   }
-
   const viewStats = bumpViews();
   res.render('index', {
-    user: req.user, properties, favIds,
-    filters: { city, status, rooms, price_from, price_to, area_from },
+    user: req.user, properties, favIds, cities: CITIES,
+    filters: { city, status, rooms, price_from, price_to, area_from, category, rent_period },
     onlineNow: smartOnlineCount(),
     pageViews: viewStats.views,
     uniqueVisitors: viewStats.uniques,
     title: t(res.locals.lang, 'home')
   });
 });
+
 
 app.get('/property/:code', authUser, (req, res) => {
   const property = db.prepare('SELECT * FROM properties WHERE code = ?').get(req.params.code);
@@ -245,7 +273,10 @@ app.post('/favorites/:code/toggle', authUser, (req, res) => {
   if (!property) return res.redirect('/');
   const existing = db.prepare('SELECT id FROM favorites WHERE user_id = ? AND property_id = ?').get(req.user.id, property.id);
   if (existing) db.prepare('DELETE FROM favorites WHERE id = ?').run(existing.id);
-  else db.prepare('INSERT INTO favorites (user_id, property_id) VALUES (?, ?)').run(req.user.id, property.id);
+  else {
+    db.prepare('INSERT INTO favorites (user_id, property_id) VALUES (?, ?)').run(req.user.id, property.id);
+    try { notifyAdmin('علاقه‌مندی جدید', req.user.full_name + ' → ' + property.code, '/admin/users'); } catch (e) {}
+  }
   res.redirect(req.get('Referer') || '/property/' + property.code);
 });
 
@@ -274,6 +305,8 @@ app.post('/register', authLimiter, async (req, res) => {
   if (!full_name || !username || !phone_local || !wa_local || password.length < 6) {
     return res.render('register', { error: 'نام، نام کاربری، شماره تماس، واتساپ و رمز الزامی است', title: 'ثبت‌نام' });
   }
+  const ps = passwordStrength(password);
+  if (!ps.ok) return res.render('register', { error: ps.msg, title: 'ثبت‌نام' });
   if (!/^[a-z0-9._]{3,30}$/.test(username)) {
     return res.render('register', { error: 'نام کاربری: فقط حروف انگلیسی، عدد، نقطه و _ (۳ تا ۳۰)', title: 'ثبت‌نام' });
   }
@@ -292,6 +325,7 @@ app.post('/register', authLimiter, async (req, res) => {
     if (invite_token) {
       try { db.prepare("UPDATE invites SET used=1, used_at=datetime('now') WHERE token=? AND used=0").run(invite_token); } catch (e) {}
     }
+    try { notifyAdmin('ثبت‌نام جدید', full_name + ' / ' + username + ' / ' + phone_am, '/admin/users'); } catch (e) {}
     res.render('register-success', { user: null, user_code, username, title: 'ثبت‌نام موفق' });
   } catch (e) {
     console.error(e.message);
@@ -341,7 +375,12 @@ app.post('/login', authLimiter, async (req, res) => {
   res.redirect('/');
 });
 
-app.get('/logout', (req, res) => { res.clearCookie('token'); res.redirect('/'); });
+app.get('/logout', (req, res) => {
+  res.clearCookie('token', { path: '/' });
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.redirect('/login?out=1');
+});
 
 app.get('/my-requests', authUser, (req, res) => {
   const requests = db.prepare(`
@@ -383,7 +422,12 @@ app.post('/admin/login', authLimiter, (req, res) => {
   });
   res.redirect('/admin');
 });
-app.get('/admin/logout', (req, res) => { res.clearCookie('admin_token'); res.redirect('/admin/login'); });
+app.get('/admin/logout', (req, res) => {
+  res.clearCookie('admin_token', { path: '/' });
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.redirect('/admin/login?out=1');
+});
 
 app.get('/admin', authAdmin, (req, res) => {
   const stats = {
@@ -422,15 +466,15 @@ app.post('/admin/properties/new', authAdmin, (req, res) => {
       }
       const image_path = (req.files && req.files[0]) ? ('/uploads/properties/' + req.files[0].filename) : null;
       const info = db.prepare(`
-        INSERT INTO properties (code, title, city, address, rooms, area, price_monthly, currency, description, image_path, map_url, lat, lng, contact_whatsapp, status, available_from, max_people)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO properties (code, title, city, address, rooms, area, price_monthly, currency, description, image_path, map_url, lat, lng, contact_whatsapp, contact_whatsapp2, status, available_from, max_people, category, rent_period)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         code, title, sanitizeText(b.city, 80) || 'Yerevan', sanitizeText(b.address, 120) || null,
         parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
         parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD', sanitizeText(b.description, 5000) || null, image_path,
         sanitizeText(b.map_url, 500) || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
-        sanitizeText(b.contact_whatsapp, 30) || null, b.status || 'available', b.available_from || null,
-        parseInt(b.max_people || '2', 10)
+        sanitizeText(b.contact_whatsapp, 30) || null, sanitizeText(b.contact_whatsapp2, 30) || null, b.status || 'available', b.available_from || null,
+        parseInt(b.max_people || '2', 10), sanitizeText(b.category, 20) || 'house', sanitizeText(b.rent_period, 30) || 'monthly_1_3'
       );
       await savePropertyImages(info.lastInsertRowid, req.files || []);
       res.redirect('/admin/properties');
@@ -467,15 +511,15 @@ app.post('/admin/properties/:id/edit', authAdmin, (req, res) => {
       }
       db.prepare(`
         UPDATE properties SET title=?, city=?, address=?, rooms=?, area=?, price_monthly=?, currency=?, description=?,
-          map_url=?, lat=?, lng=?, contact_whatsapp=?, status=?, available_from=?, max_people=?, updated_at=datetime('now')
+          map_url=?, lat=?, lng=?, contact_whatsapp=?, contact_whatsapp2=?, status=?, available_from=?, max_people=?, category=?, rent_period=?, updated_at=datetime('now')
         WHERE id=?
       `).run(
         sanitizeText(b.title, 120), sanitizeText(b.city, 80), sanitizeText(b.address, 120) || null,
         parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
         parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD', sanitizeText(b.description, 5000) || null,
         sanitizeText(b.map_url, 500) || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
-        sanitizeText(b.contact_whatsapp, 30) || null, b.status, b.available_from || null,
-        parseInt(b.max_people || '2', 10), property.id
+        sanitizeText(b.contact_whatsapp, 30) || null, sanitizeText(b.contact_whatsapp2, 30) || null, b.status, b.available_from || null,
+        parseInt(b.max_people || '2', 10), sanitizeText(b.category, 20) || 'house', sanitizeText(b.rent_period, 30) || 'monthly_1_3', property.id
       );
       await savePropertyImages(property.id, req.files || []);
       // refresh cover
@@ -609,6 +653,60 @@ app.post('/admin/settings', authAdmin, (req, res) => {
   res.redirect('/admin/settings');
 });
 
+
+app.get('/admin/users/:id', authAdmin, (req, res) => {
+  const u = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!u) return res.redirect('/admin/users');
+  const invites = [];
+  try { invites.push(...db.prepare('SELECT * FROM user_invites WHERE user_id = ?').all(u.id)); } catch (e) {}
+  res.render('admin/user-detail', { admin: req.admin, u, invites, ok: req.query.ok, title: 'کاربر' });
+});
+app.post('/admin/users/:id/password', authAdmin, async (req, res) => {
+  const u = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!u) return res.redirect('/admin/users');
+  const np = String(req.body.new_password || '');
+  const ps = passwordStrength(np);
+  if (!ps.ok) return res.redirect('/admin/users/' + u.id + '?err=1');
+  const hash = await bcrypt.hash(np, 12);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, u.id);
+  notify(u.id, 'رمز عبور تغییر کرد', 'ادمین رمز شما را به‌روز کرد. رمز جدید را از پشتیبانی بگیرید.', '/login');
+  res.redirect('/admin/users/' + u.id + '?ok=1');
+});
+
+app.get('/notifications', authUser, (req, res) => {
+  let rows = [];
+  try { rows = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all(req.user.id); } catch (e) {}
+  try { db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ?').run(req.user.id); } catch (e) {}
+  res.render('notifications', { user: req.user, rows, title: t(res.locals.lang, 'notifications') });
+});
+app.get('/admin/notifications', authAdmin, (req, res) => {
+  let rows = [];
+  try { rows = db.prepare('SELECT * FROM notifications WHERE for_admin = 1 ORDER BY id DESC LIMIT 100').all(); } catch (e) {}
+  try { db.prepare('UPDATE notifications SET is_read = 1 WHERE for_admin = 1').run(); } catch (e) {}
+  res.render('admin/notifications', { admin: req.admin, rows, title: 'اعلان‌ها' });
+});
+
+app.post('/profile/password', authUser, async (req, res) => {
+  const cur = String(req.body.current_password || '');
+  const np = String(req.body.new_password || '');
+  const ps = passwordStrength(np);
+  if (!ps.ok) return res.render('profile', { user: req.user, error: ps.msg, ok: null, title: 'پروفایل من' });
+  if (!(await bcrypt.compare(cur, req.user.password_hash))) {
+    return res.render('profile', { user: req.user, error: 'رمز فعلی اشتباه است', ok: null, title: 'پروفایل من' });
+  }
+  const hash = await bcrypt.hash(np, 12);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);
+  res.render('profile', { user: req.user, error: null, ok: 'رمز تغییر کرد', title: 'پروفایل من' });
+});
+
+app.post('/profile/invite', authUser, (req, res) => {
+  const code = 'INV' + req.user.user_code + Math.random().toString(36).slice(2, 6).toUpperCase();
+  try {
+    db.prepare('INSERT INTO user_invites (user_id, code) VALUES (?, ?)').run(req.user.id, code);
+  } catch (e) {}
+  res.redirect('/profile');
+});
+
 app.get('/admin/users', authAdmin, (req, res) => {
   const users = db.prepare('SELECT id, user_code, full_name, phone_am, whatsapp, created_at, last_seen FROM users ORDER BY user_code ASC').all();
   res.render('admin/users', { admin: req.admin, users, isOnline, title: 'کاربران' });
@@ -679,6 +777,8 @@ app.post('/book/:code', authUser, (req, res) => {
   const start_date = sanitizeText(req.body.start_date, 20);
   const end_date = sanitizeText(req.body.end_date, 20);
   const pay_method = sanitizeText(req.body.pay_method, 20);
+  const pay_card_type = sanitizeText(req.body.pay_card_type, 10);
+  const passport_no = sanitizeText(req.body.passport_no, 40);
   const amount = req.body.amount ? parseFloat(req.body.amount) : null;
   const cards = {
     ir: getSetting('pay_card_ir_enabled', '0') === '1' ? getSetting('pay_card_ir', '') : '',
@@ -687,18 +787,76 @@ app.post('/book/:code', authUser, (req, res) => {
     note: getSetting('pay_card_note', '')
   };
   if (!['daily', 'monthly', 'yearly'].includes(rent_type) || !start_date || !['cash', 'online'].includes(pay_method)) {
-    return res.render('book', { user: req.user, property, cards, error: 'لطفاً نوع رزرو، تاریخ و روش پرداخت را درست انتخاب کنید', title: 'رزرو ملک' });
+    return res.render('book', { user: req.user, property, cards, error: 'لطفاً فیلدها را کامل کنید', title: 'رزرو ملک' });
+  }
+  if (pay_method === 'online' && !pay_card_type) {
+    return res.render('book', { user: req.user, property, cards, error: 'نوع کارت را انتخاب کنید', title: 'رزرو ملک' });
   }
   const booking_code = 'B' + Date.now().toString().slice(-10);
+  const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const pay_status = pay_method === 'online' ? 'pending_payment' : 'pending';
+  const status = pay_method === 'online' ? 'pending_payment' : 'pending';
+  try {
+    db.prepare(`
+      INSERT INTO bookings (booking_code, user_id, property_id, rent_type, start_date, end_date, amount, currency, pay_method, pay_status, status, pay_card_type, pay_expires_at, passport_no)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(booking_code, req.user.id, property.id, rent_type, start_date, end_date || null, amount, property.currency || 'AMD', pay_method, pay_status, status, pay_card_type || null, pay_method==='online' ? expires : null, passport_no || null);
+  } catch (e) {
+    console.error(e);
+    return res.render('book', { user: req.user, property, cards, error: 'خطا در ثبت: ' + e.message, title: 'رزرو ملک' });
+  }
+  try { notifyAdmin('رزرو جدید ' + booking_code, req.user.full_name + ' — ' + property.code, '/admin/bookings'); } catch (e) {}
+  const booking = db.prepare('SELECT * FROM bookings WHERE booking_code = ?').get(booking_code);
+  if (pay_method === 'online') {
+    const cardNum = cards[pay_card_type] || '';
+    return res.render('book-pending', { user: req.user, booking, cardNum, title: 'در انتظار پرداخت' });
+  }
+  res.render('book-success', { user: req.user, booking_code, pay_method, cards, property, title: 'رزرو ثبت شد' });
+});
+
+app.post('/book/:code/cancel', authUser, (req, res) => {
+  const b = db.prepare('SELECT * FROM bookings WHERE booking_code = ? AND user_id = ?').get(req.params.code, req.user.id);
+  if (b && (b.status === 'pending_payment' || b.pay_status === 'pending_payment')) {
+    db.prepare("UPDATE bookings SET status='cancelled', pay_status='cancelled', admin_note=COALESCE(admin_note,'') WHERE id=?").run(b.id);
+  }
+  res.redirect('/my-bookings');
+});
+
+app.get('/book/:code/receipt', authUser, (req, res) => {
+  const booking = db.prepare('SELECT * FROM bookings WHERE booking_code = ? AND user_id = ?').get(req.params.code, req.user.id);
+  if (!booking) return res.status(404).send('Not found');
+  const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(booking.property_id);
+  res.render('booking-receipt', { user: req.user, booking, property });
+});
+
+app.post('/admin/bookings/:code/cancel', authAdmin, (req, res) => {
+  const reason = sanitizeText(req.body.reason, 500) || 'لغو توسط ادمین';
+  const b = db.prepare('SELECT * FROM bookings WHERE booking_code = ?').get(req.params.code);
+  if (b) {
+    db.prepare("UPDATE bookings SET status='cancelled', pay_status='cancelled', admin_note=? WHERE id=?").run(reason, b.id);
+    notify(b.user_id, 'پیام ادمین درباره رزرو', reason, '/my-bookings');
+  }
+  res.redirect('/admin/bookings');
+});
+
+app.post('/admin/bookings/manual', authAdmin, (req, res) => {
+  const user_code = parseInt(req.body.user_code, 10);
+  const property_code = sanitizeText(req.body.property_code, 30);
+  const start_date = sanitizeText(req.body.start_date, 20);
+  const end_date = sanitizeText(req.body.end_date, 20);
+  const user = db.prepare('SELECT * FROM users WHERE user_code = ?').get(user_code);
+  const property = db.prepare('SELECT * FROM properties WHERE code = ?').get(property_code);
+  if (!user || !property || !start_date) return res.redirect('/admin/bookings');
+  const booking_code = 'BM' + Date.now().toString().slice(-9);
   db.prepare(`
     INSERT INTO bookings (booking_code, user_id, property_id, rent_type, start_date, end_date, amount, currency, pay_method, pay_status, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')
-  `).run(booking_code, req.user.id, property.id, rent_type, start_date, end_date || null, amount, property.currency || 'AMD', pay_method);
-  res.render('book-success', {
-    user: req.user, booking_code, pay_method, cards, property,
-    title: 'رزرو ثبت شد'
-  });
+    VALUES (?, ?, ?, 'monthly', ?, ?, NULL, ?, 'cash', 'paid', 'confirmed')
+  `).run(booking_code, user.id, property.id, start_date, end_date || null, property.currency || 'AMD');
+  try { db.prepare("UPDATE properties SET status='reserved' WHERE id=?").run(property.id); } catch (e) {}
+  notify(user.id, 'رزرو حضوری ثبت شد', 'کد: ' + booking_code, '/my-bookings');
+  res.redirect('/admin/bookings');
 });
+
 
 app.get('/my-bookings', authUser, (req, res) => {
   const rows = db.prepare(`
@@ -707,6 +865,14 @@ app.get('/my-bookings', authUser, (req, res) => {
     WHERE b.user_id = ? ORDER BY b.created_at DESC
   `).all(req.user.id);
   res.render('my-bookings', { user: req.user, rows, title: 'رزروهای من' });
+});
+
+app.get('/admin/bookings/:code/receipt', authAdmin, (req, res) => {
+  const booking = db.prepare('SELECT * FROM bookings WHERE booking_code = ?').get(req.params.code);
+  if (!booking) return res.status(404).send('Not found');
+  const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(booking.property_id);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(booking.user_id);
+  res.render('booking-receipt', { user, booking, property });
 });
 
 app.get('/admin/bookings', authAdmin, (req, res) => {
@@ -756,6 +922,45 @@ app.get('/invite/:token', (req, res) => {
 
 
 try { require('./utils/init-db'); } catch (e) { console.log('init:', e.message); }
+
+try {
+  const pc = db.prepare('PRAGMA table_info(properties)').all().map(c => c.name);
+  if (!pc.includes('category')) db.exec("ALTER TABLE properties ADD COLUMN category TEXT DEFAULT 'house'");
+  if (!pc.includes('rent_period')) db.exec("ALTER TABLE properties ADD COLUMN rent_period TEXT DEFAULT 'monthly_1_3'");
+} catch (e) {}
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    for_admin INTEGER DEFAULT 0,
+    title TEXT NOT NULL,
+    body TEXT,
+    link TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+} catch (e) {}
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS user_invites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    used_count INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+} catch (e) {}
+try {
+  const bc = db.prepare('PRAGMA table_info(bookings)').all().map(c => c.name);
+  const addB = (n, typ) => { if (!bc.includes(n)) try { db.exec('ALTER TABLE bookings ADD COLUMN ' + n + ' ' + typ); } catch(e){} };
+  addB('pay_card_type', 'TEXT');
+  addB('pay_expires_at', 'TEXT');
+  addB('pay_tracking', 'TEXT');
+  addB('pay_bank', 'TEXT');
+  addB('passport_no', 'TEXT');
+  addB('admin_note', 'TEXT');
+  addB('receipt_filled', 'INTEGER DEFAULT 0');
+} catch (e) {}
+
 try {
   const uc = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   if (!uc.includes('username')) db.exec('ALTER TABLE users ADD COLUMN username TEXT');
