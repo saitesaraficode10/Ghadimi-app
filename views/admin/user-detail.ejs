@@ -1,0 +1,25 @@
+<%- include('../partials/header') %>
+<div class="admin-top">
+  <h1 style="margin:0">کاربر <%= u.user_code %></h1>
+  <a class="btn btn-ghost" href="/admin/users"><%= t('back') %></a>
+</div>
+<% if (ok) { %><div class="alert" style="background:rgba(52,211,153,0.15);color:#6ee7b7">ذخیره شد</div><% } %>
+<div class="panel stack" style="max-width:560px;margin-top:1rem">
+  <div>نام: <b><%= u.full_name %></b></div>
+  <div>نام کاربری: <b dir="ltr"><%= u.username || '—' %></b></div>
+  <div>تلفن: <b dir="ltr"><%= u.phone_am %></b></div>
+  <div>واتساپ: <b dir="ltr"><%= u.whatsapp %></b></div>
+  <div>ثبت‌نام: <b><%= u.created_at %></b></div>
+  <div>آخرین بازدید: <b><%= u.last_seen || '—' %></b></div>
+  <p class="muted">رمز هش‌شده است و قابل نمایش نیست. می‌توانید رمز جدید بگذارید.</p>
+  <form method="POST" action="/admin/users/<%= u.id %>/password" class="stack">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label class="label">رمز جدید (حداقل ۸، حرف+عدد)</label>
+    <div style="display:flex;gap:0.35rem">
+      <input class="input" type="password" name="new_password" id="newPw" required minlength="8" style="flex:1">
+      <button type="button" class="btn btn-ghost" data-toggle-pw="newPw">👁</button>
+    </div>
+    <button class="btn btn-primary" type="submit">تغییر رمز و اطلاع به کاربر</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

@@ -1,38 +1,44 @@
 <%- include('../partials/header') %>
-<div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+<div class="admin-top">
   <h1 style="margin:0">رزروها</h1>
-  <a class="btn btn-ghost" href="/admin">داشبورد</a>
+  <a class="btn btn-ghost" href="/admin"><%= t('back') %></a>
 </div>
-<% rows.forEach(r => { %>
-  <div class="panel stack" style="margin-top:1rem">
-    <div><b><%= r.booking_code %></b> — <%= r.title %> (<%= r.property_code %>)</div>
-    <div class="muted">مشتری: <%= r.full_name %> · کد <%= r.user_code %> · <%= r.phone_am %></div>
-    <div class="muted">نوع: <%= r.rent_type %> · از <%= r.start_date %> · تا <%= r.end_date || '—' %> · مبلغ: <%= r.amount || '—' %></div>
-    <form method="POST" action="/admin/bookings/<%= r.id %>/update" class="stack">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
-        <div>
-          <label class="label">وضعیت رزرو</label>
-          <select class="input" name="status">
-            <option value="pending" <%= r.status==='pending'?'selected':'' %>>در انتظار</option>
-            <option value="confirmed" <%= r.status==='confirmed'?'selected':'' %>>تأیید شد</option>
-            <option value="cancelled" <%= r.status==='cancelled'?'selected':'' %>>لغو</option>
-            <option value="done" <%= r.status==='done'?'selected':'' %>>انجام شد</option>
-          </select>
-        </div>
-        <div>
-          <label class="label">وضعیت پرداخت</label>
-          <select class="input" name="pay_status">
-            <option value="pending" <%= r.pay_status==='pending'?'selected':'' %>>در انتظار</option>
-            <option value="paid" <%= r.pay_status==='paid'?'selected':'' %>>پرداخت شد</option>
-            <option value="rejected" <%= r.pay_status==='rejected'?'selected':'' %>>رد</option>
-          </select>
-        </div>
-      </div>
-      <input class="input" name="admin_note" placeholder="یادداشت" value="<%= r.admin_note || '' %>">
-      <button class="btn btn-primary" type="submit">ذخیره</button>
-    </form>
+<form method="POST" action="/admin/bookings/manual" class="panel stack" style="max-width:640px;margin:1rem 0">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <h2 style="margin:0;font-size:1rem">رزرو دستی حضوری</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+    <input class="input" name="user_code" placeholder="کد کاربر" required>
+    <input class="input" name="property_code" placeholder="کد ملک" required>
+    <input class="input" type="date" name="start_date" required>
+    <input class="input" type="date" name="end_date">
   </div>
-<% }) %>
-<% if (!rows.length) { %><p class="muted">رزروی نیست</p><% } %>
+  <button class="btn btn-primary" type="submit">ثبت رزرو حضوری</button>
+</form>
+<div class="table-wrap panel" style="padding:0">
+  <table>
+    <thead><tr><th>کد</th><th>کاربر</th><th>ملک</th><th>پرداخت</th><th>وضعیت</th><th>مهلت</th><th></th></tr></thead>
+    <tbody>
+      <% rows.forEach(r => { %>
+        <tr>
+          <td><%= r.booking_code %></td>
+          <td><%= r.full_name %> (<%= r.user_code %>)</td>
+          <td><%= r.property_code %></td>
+          <td><%= r.pay_method %> / <%= r.pay_card_type || '—' %></td>
+          <td><%= statusLabel(r.status) %></td>
+          <td dir="ltr" style="font-size:0.75rem"><%= r.pay_expires_at || '—' %></td>
+          <td>
+            <a href="/book/<%= r.booking_code %>/receipt" target="_blank">رسید</a>
+            <% if (r.status==='pending_payment' || r.status==='pending') { %>
+            <form method="POST" action="/admin/bookings/<%= r.booking_code %>/cancel" style="display:inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input class="input" name="reason" placeholder="دلیل لغو" style="width:8rem;display:inline-block">
+              <button class="btn btn-ghost" type="submit" style="padding:0.2rem 0.5rem">لغو</button>
+            </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
 <%- include('../partials/footer') %>

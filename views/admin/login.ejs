@@ -20,7 +20,10 @@
       </div>
       <div>
         <label class="label">رمز عبور</label>
-        <input class="input" type="password" name="password" placeholder="رمز" required maxlength="72" autocomplete="current-password">
+        <div style="display:flex;gap:0.35rem">
+        <input class="input" type="password" name="password" id="adminPw" placeholder="رمز" required maxlength="72" autocomplete="current-password" style="flex:1">
+        <button type="button" class="btn btn-ghost" data-toggle-pw="adminPw">👁</button>
+      </div>
       </div>
       <button class="btn btn-primary" type="submit">ورود</button>
       <a href="/" class="muted" style="text-align:center">بازگشت به سایت</a>

@@ -1,126 +1,88 @@
 <%- include('../partials/header') %>
-<h1><%= property ? 'ویرایش ملک' : 'افزودن ملک' %></h1>
+<div class="admin-top">
+  <h1 style="margin:0"><%= property ? 'ویرایش ملک' : 'افزودن ملک' %></h1>
+  <a class="btn btn-ghost" href="/admin/properties"><%= t('back') %></a>
+</div>
 <% if (error) { %><div class="alert" style="margin:1rem 0"><%= error %></div><% } %>
-<form method="POST" enctype="multipart/form-data" class="panel stack" style="max-width:640px;margin-top:1rem">
+<form method="POST" enctype="multipart/form-data" class="panel stack" style="max-width:680px;margin-top:1rem">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-
   <% if (!property) { %>
-    <div>
-      <label class="label">کد ملک (دستی) *</label>
-      <input class="input" name="code" required maxlength="30" placeholder="مثلاً A-101">
-    </div>
+    <div><label class="label">کد ملک *</label><input class="input" name="code" required maxlength="30" placeholder="A-101"></div>
   <% } else { %>
-    <div>
-      <label class="label">کد ملک</label>
-      <input class="input" value="<%= property.code %>" disabled>
-    </div>
+    <div><label class="label">کد ملک</label><input class="input" value="<%= property.code %>" disabled></div>
   <% } %>
+  <div><label class="label">عنوان *</label><input class="input" name="title" required maxlength="120" value="<%= property ? property.title : '' %>"></div>
 
-  <div>
-    <label class="label">عنوان *</label>
-    <input class="input" name="title" required maxlength="120" value="<%= property ? property.title : '' %>">
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
     <div>
-      <label class="label">شهر</label>
-      <input class="input" name="city" value="<%= property ? property.city : 'Yerevan' %>">
-    </div>
-    <div>
-      <label class="label">آدرس/محله</label>
-      <input class="input" name="address" value="<%= property && property.address ? property.address : '' %>">
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem">
-    <div>
-      <label class="label">خواب</label>
-      <input class="input" type="number" name="rooms" min="0" value="<%= property ? property.rooms : 1 %>">
-    </div>
-    <div>
-      <label class="label">متراژ</label>
-      <input class="input" type="number" name="area" min="0" value="<%= property && property.area ? property.area : '' %>">
-    </div>
-    <div>
-      <label class="label">حداکثر نفر</label>
-      <input class="input" type="number" name="max_people" min="1" value="<%= property ? property.max_people : 2 %>">
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-    <div>
-      <label class="label">اجاره ماهانه *</label>
-      <input class="input" type="number" name="price_monthly" required min="0" value="<%= property ? property.price_monthly : '' %>">
-    </div>
-    <div>
-      <label class="label">ارز</label>
-      <input class="input" name="currency" value="<%= property ? property.currency : 'AMD' %>">
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-    <div>
-      <label class="label">وضعیت</label>
-      <select class="input" name="status">
-        <option value="available" <%= property && property.status==='available'?'selected':'' %>>آزاد</option>
-        <option value="rented" <%= property && property.status==='rented'?'selected':'' %>>در اجاره</option>
-        <option value="reserved" <%= property && property.status==='reserved'?'selected':'' %>>رزرو</option>
+      <label class="label">دسته‌بندی *</label>
+      <select class="input" name="category">
+        <option value="house" <%= !property || property.category!=='shop'?'selected':'' %>>خانه</option>
+        <option value="shop" <%= property && property.category==='shop'?'selected':'' %>>مغازه</option>
       </select>
     </div>
     <div>
-      <label class="label">اگر در اجاره است، از کی آزاد می‌شود؟</label>
-      <input class="input" type="date" name="available_from" value="<%= property && property.available_from ? property.available_from : '' %>">
+      <label class="label">نوع اجاره (خانه)</label>
+      <select class="input" name="rent_period">
+        <option value="daily" <%= property && property.rent_period==='daily'?'selected':'' %>>روزانه</option>
+        <option value="monthly_1_3" <%= !property || property.rent_period==='monthly_1_3' || !property.rent_period?'selected':'' %>>ماهانه ۱–۳ ماه</option>
+        <option value="monthly_6_12" <%= property && property.rent_period==='monthly_6_12'?'selected':'' %>>ماهانه ۶–۱۲ ماه</option>
+        <option value="yearly" <%= property && property.rent_period==='yearly'?'selected':'' %>>سالیانه</option>
+      </select>
     </div>
   </div>
 
-  <div>
-    <label class="label">لینک نقشه</label>
-    <input class="input" name="map_url" value="<%= property && property.map_url ? property.map_url : '' %>" placeholder="https://maps.google.com/...">
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
     <div>
-      <label class="label">lat</label>
-      <input class="input" name="lat" value="<%= property && property.lat ? property.lat : '' %>">
-    </div>
-    <div>
-      <label class="label">lng</label>
-      <input class="input" name="lng" value="<%= property && property.lng ? property.lng : '' %>">
-    </div>
-  </div>
-
-  <div>
-    <label class="label">واتساپ تماس</label>
-    <input class="input" name="contact_whatsapp" value="<%= property && property.contact_whatsapp ? property.contact_whatsapp : '' %>" placeholder="+374...">
-  </div>
-
-  <div>
-    <label class="label">توضیحات</label>
-    <textarea class="input" name="description" rows="4"><%= property && property.description ? property.description : '' %></textarea>
-  </div>
-
-  <div>
-    <label class="label">عکس‌ها (می‌توانید چندتا انتخاب کنید — تا ۲۰ عکس)</label>
-    <input class="input" type="file" name="images" accept="image/jpeg,image/png,image/webp,image/jpg" multiple>
-    <p class="muted" style="margin:0.35rem 0 0">jpg / png / webp — هر فایل حداکثر ۵ مگ</p>
-  </div>
-
-  <% if (typeof images !== 'undefined' && images && images.length) { %>
-    <div>
-      <label class="label">عکس‌های فعلی</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem">
-        <% images.forEach(img => { %>
-          <div style="position:relative">
-            <img src="<%= img.path %>" alt="" style="width:100%;height:90px;object-fit:cover;border-radius:10px">
-            <label style="display:flex;align-items:center;gap:0.25rem;font-size:0.75rem;margin-top:0.25rem">
-              <input type="checkbox" name="delete_images" value="<%= img.id %>"> حذف
-            </label>
-          </div>
+      <label class="label">شهر</label>
+      <select class="input" name="city">
+        <% ['Yerevan','Gyumri','Vanadzor','Dilijan','Tsaghkadzor','Sevan','Kapan','Armavir','Abovyan','Hrazdan','Ashtarak','Ijevan','Artashat','Goris','Jermuk'].forEach(c => { %>
+          <option value="<%= c %>" <%= (property ? property.city : 'Yerevan')===c?'selected':'' %>><%= c %></option>
         <% }) %>
-      </div>
+      </select>
     </div>
-  <% } %>
+    <div><label class="label">آدرس/محله</label><input class="input" name="address" value="<%= property && property.address ? property.address : '' %>"></div>
+  </div>
 
-  <button class="btn btn-primary" type="submit" style="width:100%">ذخیره</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem">
+    <div><label class="label">اتاق</label><input class="input" type="number" name="rooms" min="0" value="<%= property ? property.rooms : 1 %>"></div>
+    <div><label class="label">متراژ</label><input class="input" type="number" name="area" min="0" value="<%= property && property.area ? property.area : '' %>"></div>
+    <div><label class="label">حداکثر نفرات</label><input class="input" type="number" name="max_people" min="1" value="<%= property && property.max_people ? property.max_people : 2 %>"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:0.6rem">
+    <div><label class="label">قیمت ماهانه *</label><input class="input" type="number" name="price_monthly" required min="0" value="<%= property ? property.price_monthly : '' %>"></div>
+    <div>
+      <label class="label">ارز *</label>
+      <select class="input" name="currency" required>
+        <% ['AMD','USD','EUR','IRR','RUB'].forEach(cur => { %>
+          <option value="<%= cur %>" <%= (property && property.currency ? property.currency : 'AMD')===cur?'selected':'' %>><%= cur %></option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+
+  <div>
+    <label class="label">وضعیت</label>
+    <select class="input" name="status">
+      <option value="available" <%= !property || property.status==='available'?'selected':'' %>>آزاد</option>
+      <option value="reserved" <%= property && property.status==='reserved'?'selected':'' %>>رزرو</option>
+      <option value="rented" <%= property && property.status==='rented'?'selected':'' %>>اجاره رفته</option>
+    </select>
+  </div>
+  <div><label class="label">از تاریخ آزاد</label><input class="input" type="date" name="available_from" value="<%= property && property.available_from ? property.available_from : '' %>"></div>
+  <div><label class="label">توضیحات</label><textarea class="input" name="description" rows="4"><%= property && property.description ? property.description : '' %></textarea></div>
+  <div><label class="label">لینک نقشه</label><input class="input" name="map_url" dir="ltr" value="<%= property && property.map_url ? property.map_url : '' %>"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
+    <div><label class="label">واتساپ ملک ۱</label><input class="input" name="contact_whatsapp" dir="ltr" placeholder="+374..." value="<%= property && property.contact_whatsapp ? property.contact_whatsapp : '' %>"></div>
+    <div><label class="label">واتساپ ملک ۲</label><input class="input" name="contact_whatsapp2" dir="ltr" placeholder="+374..." value="<%= property && property.contact_whatsapp2 ? property.contact_whatsapp2 : '' %>"></div>
+  </div>
+
+  <div>
+    <label class="label">عکس‌ها (چندتایی)</label>
+    <input class="input" type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple>
+  </div>
+  <button class="btn btn-primary" type="submit">ذخیره</button>
 </form>
 <%- include('../partials/footer') %>
