@@ -3,7 +3,7 @@
   <div class="panel auth-card">
     <h1 style="margin-top:0;text-align:center"><%= t('login') %></h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
-    <div style="display:flex;gap:0.4rem;margin-bottom:0.75rem">
+    <div style="display:flex;gap:0.4rem;margin-bottom:0.85rem">
       <button type="button" class="btn btn-ghost mode-btn active" id="modeUser" style="flex:1"><%= t('username') %></button>
       <button type="button" class="btn btn-ghost mode-btn" id="modePhone" style="flex:1"><%= t('phone') %></button>
     </div>
@@ -12,12 +12,12 @@
       <input type="hidden" name="login_mode" id="loginMode" value="user">
       <div id="boxUser">
         <label class="label"><%= t('username') %></label>
-        <input class="input" name="login_id" id="loginId" maxlength="40" dir="ltr" style="text-align:left" autocomplete="username" required>
+        <input class="input" name="login_id" id="loginId" maxlength="40" dir="ltr" style="text-align:left" autocomplete="username" required placeholder="username">
       </div>
       <div id="boxPhone" style="display:none">
         <label class="label"><%= t('phone') %></label>
         <div class="phone-row">
-          <select class="input" name="phone_cc" data-country-code data-prefer="+374"></select>
+          <select class="input" name="phone_cc" id="phoneCc" data-country-code data-prefer="+374"></select>
           <input class="input" name="phone_local" id="phoneLocal" maxlength="15" dir="ltr" placeholder="99123456">
         </div>
       </div>
@@ -33,46 +33,5 @@
     <p class="muted" style="text-align:center;margin-top:1rem"><a href="/register"><%= t('register') %></a></p>
   </div>
 </div>
-<script>
-(function(){
-  var u = document.getElementById('modeUser');
-  var p = document.getElementById('modePhone');
-  var bu = document.getElementById('boxUser');
-  var bp = document.getElementById('boxPhone');
-  var lid = document.getElementById('loginId');
-  var pl = document.getElementById('phoneLocal');
-  var mode = document.getElementById('loginMode');
-  function setActive(btn) {
-    document.querySelectorAll('.mode-btn').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-  }
-  function userMode(){
-    bu.style.display = 'block';
-    bp.style.display = 'none';
-    if (pl) { pl.value = ''; pl.removeAttribute('required'); }
-    if (lid) { lid.setAttribute('required', 'required'); }
-    mode.value = 'user';
-    setActive(u);
-  }
-  function phoneMode(){
-    bu.style.display = 'none';
-    bp.style.display = 'block';
-    if (lid) { lid.value = ''; lid.removeAttribute('required'); }
-    if (pl) { pl.setAttribute('required', 'required'); }
-    mode.value = 'phone';
-    setActive(p);
-  }
-  u.addEventListener('click', function(e){ e.preventDefault(); userMode(); });
-  p.addEventListener('click', function(e){ e.preventDefault(); phoneMode(); });
-  userMode();
-  document.querySelectorAll('[data-toggle-pw]').forEach(function(btn){
-    btn.addEventListener('click', function(e){
-      e.preventDefault();
-      var inp = document.getElementById(btn.getAttribute('data-toggle-pw'));
-      if (!inp) return;
-      inp.type = inp.type === 'password' ? 'text' : 'password';
-    });
-  });
-})();
-</script>
+<script src="/js/login-page.js"></script>
 <%- include('partials/footer') %>

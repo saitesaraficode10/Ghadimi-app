@@ -1,4 +1,9 @@
 <%- include('partials/header') %>
+<% if (typeof user !== 'undefined' && user) { %>
+<div class="cpanel-wrap">
+  <%- include('partials/user-side', { activeNav: 'home' }) %>
+  <div class="cpanel-main">
+<% } %>
 <section class="hero-card">
   <h1 style="margin:0 0 0.4rem"><%= t('site_name') %></h1>
   <p class="muted" style="margin:0"><%= t('tagline') %></p>
@@ -14,9 +19,9 @@
 </section>
 
 <div class="stats-bar">
-  <div class="stat-card"><b><%= typeof onlineNow !== 'undefined' ? onlineNow : '—' %></b><span class="muted">Online</span></div>
-  <div class="stat-card"><b><%= typeof pageViews !== 'undefined' ? Number(pageViews).toLocaleString() : '—' %></b><span class="muted">Views</span></div>
-  <div class="stat-card"><b><%= typeof uniqueVisitors !== 'undefined' ? Number(uniqueVisitors).toLocaleString() : '—' %></b><span class="muted">Visitors</span></div>
+  <div class="stat-card"><b><%= typeof onlineNow !== 'undefined' ? onlineNow : '—' %></b><span class="muted"><%= t('online_now') %></span></div>
+  <div class="stat-card"><b><%= typeof pageViews !== 'undefined' ? Number(pageViews).toLocaleString() : '—' %></b><span class="muted"><%= t('page_views') %></span></div>
+  <div class="stat-card"><b><%= typeof uniqueVisitors !== 'undefined' ? Number(uniqueVisitors).toLocaleString() : '—' %></b><span class="muted"><%= t('visitors') %></span></div>
 </div>
 
 <form class="filters panel" method="GET" style="margin:1rem 0;padding:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.5rem">
@@ -90,4 +95,9 @@
     <p class="muted" style="grid-column:1/-1;text-align:center;padding:2rem"><%= t('no_properties') %></p>
   <% } %>
 </div>
+<% if (typeof user !== 'undefined' && user) { %>
+  </div>
+</div>
+<% } %>
 <%- include('partials/footer') %>
+

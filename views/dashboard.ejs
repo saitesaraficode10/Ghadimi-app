@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+<div class="cpanel-wrap">
+  <%- include('partials/user-side', { activeNav: 'dashboard' }) %>
+  <div class="cpanel-main">
+    <h1 style="margin-top:0"><%= t('dashboard') %></h1>
+    <p class="muted"><%= user.full_name %> · <%= t('username') %>: <b dir="ltr"><%= user.username || '—' %></b> · Code: <b><%= user.user_code %></b></p>
+    <div class="stats" style="margin:1rem 0">
+      <div class="stat"><b><%= stats.requests %></b><span class="muted"><%= t('my_requests') %></span></div>
+      <div class="stat"><b><%= stats.bookings %></b><span class="muted"><%= t('my_bookings') %></span></div>
+      <div class="stat"><b><%= stats.favorites %></b><span class="muted"><%= t('favorites') %></span></div>
+      <div class="stat"><b><%= stats.unread %></b><span class="muted"><%= t('notifications') %></span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem">
+      <a class="panel" href="/" style="text-align:center;padding:1.1rem;text-decoration:none;color:inherit">🏠<br><b><%= t('listings') %></b></a>
+      <a class="panel" href="/my-requests" style="text-align:center;padding:1.1rem;text-decoration:none;color:inherit">📋<br><b><%= t('my_requests') %></b></a>
+      <a class="panel" href="/my-bookings" style="text-align:center;padding:1.1rem;text-decoration:none;color:inherit">📅<br><b><%= t('my_bookings') %></b></a>
+      <a class="panel" href="/favorites" style="text-align:center;padding:1.1rem;text-decoration:none;color:inherit">⭐<br><b><%= t('favorites') %></b></a>
+      <a class="panel" href="/notifications" style="text-align:center;padding:1.1rem;text-decoration:none;color:inherit">🔔<br><b><%= t('notifications') %></b></a>
+      <a class="panel" href="/profile" style="text-align:center;padding:1.1rem;text-decoration:none;color:inherit">👤<br><b><%= t('profile') %></b></a>
+      <a class="panel" href="/contact" style="text-align:center;padding:1.1rem;text-decoration:none;color:inherit">📞<br><b><%= t('contact') %></b></a>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

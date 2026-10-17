@@ -1,12 +1,6 @@
 <%- include('partials/header') %>
 <div class="cpanel-wrap">
-<aside class="cpanel-side">
-  <div class="side-brand">Ghadimi</div>
-  <a href="/"><%= t('home') %></a>
-  <a href="/my-bookings"><%= t('my_bookings') %></a>
-  <a href="/profile"><%= t('profile') %></a>
-  <a href="/contact"><%= t('contact') %></a>
-</aside>
+<%- include('partials/user-side', { activeNav: 'bookings' }) %>
 <div class="cpanel-main">
   <h1 style="margin-top:0">رزرو: <%= property.title %></h1>
   <p class="muted"><%= property.city %> · <%= Number(property.price_monthly).toLocaleString() %> <%= property.currency %></p>
@@ -66,20 +60,5 @@
   </form>
 </div>
 </div>
-<script>
-(function(){
-  var sel = document.getElementById('payMethod');
-  var box = document.getElementById('cardPick');
-  function sync(){
-    if (sel.value === 'online') {
-      box.style.display = 'flex';
-      box.style.flexDirection = 'column';
-    } else {
-      box.style.display = 'none';
-    }
-  }
-  sel.addEventListener('change', sync);
-  sync();
-})();
-</script>
+<script src="/js/book-page.js"></script>
 <%- include('partials/footer') %>
