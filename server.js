@@ -156,16 +156,46 @@ function statusLabel(lang, s) {
   return s || '—';
 }
 
+function ensureNotificationsTable() {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      for_admin INTEGER DEFAULT 0,
+      title TEXT NOT NULL,
+      body TEXT,
+      link TEXT,
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
+  } catch (e) {}
+}
+
 function notify(userId, title, body, link) {
   try {
-    db.prepare('INSERT INTO notifications (user_id, title, body, link) VALUES (?, ?, ?, ?)').run(userId || null, title, body || '', link || '');
+    ensureNotificationsTable();
+    db.prepare('INSERT INTO notifications (user_id, title, body, link, for_admin) VALUES (?, ?, ?, ?, 0)').run(userId || null, title, body || '', link || '');
   } catch (e) { console.log('notify', e.message); }
 }
 
 function notifyAdmin(title, body, link) {
   try {
+    ensureNotificationsTable();
     db.prepare('INSERT INTO notifications (user_id, title, body, link, for_admin) VALUES (NULL, ?, ?, ?, 1)').run(title, body || '', link || '');
   } catch (e) { console.log('notifyAdmin', e.message); }
+}
+
+
+function getPayCards() {
+  return {
+    ir: getSetting('pay_card_ir', '') || '',
+    am: getSetting('pay_card_am', '') || '',
+    visa: getSetting('pay_card_visa', '') || '',
+    irOn: getSetting('pay_card_ir_enabled', '0') === '1' || !!getSetting('pay_card_ir', ''),
+    amOn: getSetting('pay_card_am_enabled', '0') === '1' || !!getSetting('pay_card_am', ''),
+    visaOn: getSetting('pay_card_visa_enabled', '0') === '1' || !!getSetting('pay_card_visa', ''),
+    note: getSetting('pay_card_note', '')
+  };
 }
 
 function passwordStrength(pw) {
@@ -480,7 +510,12 @@ app.post('/admin/properties/new', authAdmin, (req, res) => {
       res.redirect('/admin/properties');
     } catch (e) {
       console.error(e);
-      return res.render('admin/property-form', { admin: req.admin, property: null, images: [], error: 'کد ملک تکراری است یا خطا در ذخیره: ' + e.message, title: 'New' });
+      console.error('property new', e);
+      let msg = e.message || '';
+      if (/UNIQUE|unique/i.test(msg)) msg = 'کد ملک تکراری است — کد دیگری بزنید';
+      else if (/contact_whatsapp2|no such column/i.test(msg)) msg = 'دیتابیس به‌روز نیست؛ یک‌بار سرویس را Redeploy کنید';
+      else msg = 'خطا در ذخیره: ' + msg;
+      return res.render('admin/property-form', { admin: req.admin, property: null, images: [], error: msg, title: 'New' });
     }
   });
 });
@@ -690,21 +725,33 @@ app.post('/profile/password', authUser, async (req, res) => {
   const cur = String(req.body.current_password || '');
   const np = String(req.body.new_password || '');
   const ps = passwordStrength(np);
-  if (!ps.ok) return res.render('profile', { user: req.user, error: ps.msg, ok: null, title: 'پروفایل من' });
+  if (!ps.ok) return res.render('profile', { user: req.user, invites: [], error: ps.msg, ok: null, title: 'پروفایل من' });
   if (!(await bcrypt.compare(cur, req.user.password_hash))) {
-    return res.render('profile', { user: req.user, error: 'رمز فعلی اشتباه است', ok: null, title: 'پروفایل من' });
+    return res.render('profile', { user: req.user, invites: [], error: 'رمز فعلی اشتباه است', ok: null, title: 'پروفایل من' });
   }
   const hash = await bcrypt.hash(np, 12);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);
-  res.render('profile', { user: req.user, error: null, ok: 'رمز تغییر کرد', title: 'پروفایل من' });
+  res.render('profile', { user: req.user, invites: [], error: null, ok: 'رمز تغییر کرد', title: 'پروفایل من' });
 });
 
 app.post('/profile/invite', authUser, (req, res) => {
-  const code = 'INV' + req.user.user_code + Math.random().toString(36).slice(2, 6).toUpperCase();
+  const code = 'INV' + String(req.user.user_code || 'U') + Math.random().toString(36).slice(2, 6).toUpperCase();
+  let invites = [];
   try {
+    db.exec(`CREATE TABLE IF NOT EXISTS user_invites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      code TEXT UNIQUE NOT NULL,
+      used_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
     db.prepare('INSERT INTO user_invites (user_id, code) VALUES (?, ?)').run(req.user.id, code);
-  } catch (e) {}
-  res.redirect('/profile');
+    invites = db.prepare('SELECT * FROM user_invites WHERE user_id = ? ORDER BY id DESC').all(req.user.id);
+  } catch (e) {
+    console.error('invite', e.message);
+    return res.render('profile', { user: req.user, invites: [], error: 'خطا در ساخت کد دعوت: ' + e.message, ok: null, title: 'پروفایل' });
+  }
+  res.render('profile', { user: req.user, invites, error: null, ok: 'کد دعوت ساخته شد: ' + code, title: 'پروفایل' });
 });
 
 app.get('/admin/users', authAdmin, (req, res) => {
@@ -722,7 +769,9 @@ app.post('/api/presence', optionalUser, (req, res) => {
 });
 
 app.get('/profile', authUser, (req, res) => {
-  res.render('profile', { user: req.user, error: null, ok: null, title: 'پروفایل من' });
+  let invites = [];
+  try { invites = db.prepare('SELECT * FROM user_invites WHERE user_id = ? ORDER BY id DESC').all(req.user.id); } catch (e) {}
+  res.render('profile', { user: req.user, invites, error: null, ok: null, title: 'پروفایل من' });
 });
 
 app.post('/profile', authUser, (req, res) => {
@@ -734,14 +783,15 @@ app.post('/profile', authUser, (req, res) => {
   const phone_am = (phone_cc + phone_local).replace(/\s/g, '');
   const whatsapp = (wa_cc + wa_local).replace(/\s/g, '');
   if (!full_name || !phone_local || !wa_local || !isValidPhone(phone_am) || !isValidPhone(whatsapp)) {
-    return res.render('profile', { user: req.user, error: 'اطلاعات نامعتبر است', ok: null, title: 'پروفایل من' });
+    return res.render('profile', { user: req.user, invites: [], error: 'اطلاعات نامعتبر است', ok: null, title: 'پروفایل من' });
   }
   try {
     db.prepare('UPDATE users SET full_name=?, phone_am=?, whatsapp=? WHERE id=?').run(full_name, phone_am, whatsapp, req.user.id);
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
-    res.render('profile', { user, error: null, ok: 'ذخیره شد', title: 'پروفایل من' });
+    let inv=[]; try{inv=db.prepare('SELECT * FROM user_invites WHERE user_id=? ORDER BY id DESC').all(user.id);}catch(e){}
+    res.render('profile', { user, invites: inv, error: null, ok: 'ذخیره شد', title: 'پروفایل من' });
   } catch (e) {
-    res.render('profile', { user: req.user, error: 'شماره تکراری است یا خطا', ok: null, title: 'پروفایل من' });
+    res.render('profile', { user: req.user, invites: [], error: 'شماره تکراری است یا خطا', ok: null, title: 'پروفایل من' });
   }
 });
 
@@ -761,12 +811,7 @@ app.post('/admin/users/:id/delete', authAdmin, (req, res) => {
 app.get('/book/:code', authUser, (req, res) => {
   const property = db.prepare('SELECT * FROM properties WHERE code = ?').get(req.params.code);
   if (!property) return res.status(404).send('Not found');
-  const cards = {
-    ir: getSetting('pay_card_ir_enabled', '0') === '1' ? getSetting('pay_card_ir', '') : '',
-    am: getSetting('pay_card_am_enabled', '0') === '1' ? getSetting('pay_card_am', '') : '',
-    visa: getSetting('pay_card_visa_enabled', '0') === '1' ? getSetting('pay_card_visa', '') : '',
-    note: getSetting('pay_card_note', '')
-  };
+  const cards = getPayCards();
   res.render('book', { user: req.user, property, cards, error: null, title: 'رزرو ملک' });
 });
 
@@ -780,12 +825,7 @@ app.post('/book/:code', authUser, (req, res) => {
   const pay_card_type = sanitizeText(req.body.pay_card_type, 10);
   const passport_no = sanitizeText(req.body.passport_no, 40);
   const amount = req.body.amount ? parseFloat(req.body.amount) : null;
-  const cards = {
-    ir: getSetting('pay_card_ir_enabled', '0') === '1' ? getSetting('pay_card_ir', '') : '',
-    am: getSetting('pay_card_am_enabled', '0') === '1' ? getSetting('pay_card_am', '') : '',
-    visa: getSetting('pay_card_visa_enabled', '0') === '1' ? getSetting('pay_card_visa', '') : '',
-    note: getSetting('pay_card_note', '')
-  };
+  const cards = getPayCards();
   if (!['daily', 'monthly', 'yearly'].includes(rent_type) || !start_date || !['cash', 'online'].includes(pay_method)) {
     return res.render('book', { user: req.user, property, cards, error: 'لطفاً فیلدها را کامل کنید', title: 'رزرو ملک' });
   }
@@ -927,6 +967,11 @@ try {
   const pc = db.prepare('PRAGMA table_info(properties)').all().map(c => c.name);
   if (!pc.includes('category')) db.exec("ALTER TABLE properties ADD COLUMN category TEXT DEFAULT 'house'");
   if (!pc.includes('rent_period')) db.exec("ALTER TABLE properties ADD COLUMN rent_period TEXT DEFAULT 'monthly_1_3'");
+  if (!pc.includes('contact_whatsapp2')) db.exec("ALTER TABLE properties ADD COLUMN contact_whatsapp2 TEXT");
+} catch (e) { console.log('prop migrate', e.message); }
+try {
+  const nc = db.prepare('PRAGMA table_info(notifications)').all().map(c => c.name);
+  if (nc.length && !nc.includes('for_admin')) db.exec('ALTER TABLE notifications ADD COLUMN for_admin INTEGER DEFAULT 0');
 } catch (e) {}
 try {
   db.exec(`CREATE TABLE IF NOT EXISTS notifications (
