@@ -6,7 +6,12 @@
   <a href="/my-requests" class="<%= typeof activeNav!=='undefined' && activeNav==='requests'?'active':'' %>"><%= t('my_requests') %></a>
   <a href="/my-bookings" class="<%= typeof activeNav!=='undefined' && activeNav==='bookings'?'active':'' %>"><%= t('my_bookings') %></a>
   <a href="/favorites" class="<%= typeof activeNav!=='undefined' && activeNav==='favorites'?'active':'' %>"><%= t('favorites') %></a>
-  <a href="/notifications" class="<%= typeof activeNav!=='undefined' && activeNav==='notifications'?'active':'' %>"><%= t('notifications') %></a>
+  <a href="/notifications" class="<%= typeof activeNav!=='undefined' && activeNav==='notifications'?'active':'' %>">
+    <%= t('notifications') %>
+    <% if (typeof unreadCount !== 'undefined' && unreadCount > 0) { %>
+      <span class="badge-count"><%= unreadCount > 99 ? '99+' : unreadCount %></span>
+    <% } %>
+  </a>
   <a href="/profile" class="<%= typeof activeNav!=='undefined' && activeNav==='profile'?'active':'' %>"><%= t('profile') %></a>
   <a href="/contact" class="<%= typeof activeNav!=='undefined' && activeNav==='contact'?'active':'' %>"><%= t('contact') %></a>
   <a href="/logout"><%= t('logout') %></a>

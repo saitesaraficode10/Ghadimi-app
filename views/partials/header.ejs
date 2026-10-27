@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="/logo-nav.png">
 </head>
-<body data-logged-in="<%= (typeof user !== 'undefined' && user) || (typeof admin !== 'undefined' && admin) ? '1' : '0' %>">
+<body class="<%= (typeof user === 'undefined' || !user) && (typeof admin === 'undefined' || !admin) ? 'page-public' : 'page-panel' %>" data-logged-in="<%= (typeof user !== 'undefined' && user) || (typeof admin !== 'undefined' && admin) ? '1' : '0' %>">
 <% var isPanel = (typeof user !== 'undefined' && user) || (typeof admin !== 'undefined' && admin); %>
 <header class="nav <%= isPanel ? 'nav-lang-only' : '' %>">
   <div class="container nav-inner">
@@ -33,7 +33,23 @@
         <img src="/logo-ghadimi-white.png" alt="Ghadimi" class="brand-logo" width="120" height="36" onerror="this.src='/logo-nav.png'">
       </a>
       <div class="nav-links">
-        <% if (typeof user !== 'undefined' && user) { %><a href="/dashboard"><%= t('dashboard') %></a><% } %>
+        <% if (typeof user !== 'undefined' && user) { %>
+          <a href="/dashboard"><%= t('dashboard') %></a>
+          <a href="/notifications" class="nav-badge-link">
+            <%= t('notifications') %>
+            <% if (typeof unreadCount !== 'undefined' && unreadCount > 0) { %>
+              <span class="badge-count"><%= unreadCount > 99 ? '99+' : unreadCount %></span>
+            <% } %>
+          </a>
+        <% } %>
+        <% if (typeof admin !== 'undefined' && admin) { %>
+          <a href="/admin/notifications" class="nav-badge-link">
+            <%= t('notifications') %>
+            <% if (typeof adminUnreadCount !== 'undefined' && adminUnreadCount > 0) { %>
+              <span class="badge-count"><%= adminUnreadCount > 99 ? '99+' : adminUnreadCount %></span>
+            <% } %>
+          </a>
+        <% } %>
         <span class="lang">
           <a href="/set-lang/fa" class="<%= lang==='fa'?'active':'' %>">FA</a>
           <a href="/set-lang/en" class="<%= lang==='en'?'active':'' %>">EN</a>
