@@ -212,8 +212,40 @@ app.use((req, res, next) => {
   const lang = ['fa', 'en', 'ru', 'hy'].includes(req.cookies.lang) ? req.cookies.lang : 'fa';
   res.locals.lang = lang;
   res.locals.t = (key) => t(lang, key);
+  res.locals.unreadCount = 0;
+  res.locals.adminUnreadCount = 0;
   res.locals.dir = lang === 'fa' || lang === 'hy' ? 'rtl' : 'ltr';
   res.locals.statusLabel = (s) => statusLabel(lang, s);
+  next();
+});
+
+
+// Unread notification counts for header badges (optional JWT)
+app.use((req, res, next) => {
+  res.locals.unreadCount = 0;
+  res.locals.adminUnreadCount = 0;
+  try {
+    const jwtLib = require('jsonwebtoken');
+    const { JWT_SECRET: secret } = require('./middleware/auth');
+    if (req.cookies && req.cookies.token) {
+      try {
+        const payload = jwtLib.verify(req.cookies.token, secret);
+        if (payload && payload.id) {
+          const r = db.prepare('SELECT COUNT(*) AS c FROM notifications WHERE user_id = ? AND COALESCE(is_read,0) = 0').get(payload.id);
+          res.locals.unreadCount = r ? r.c : 0;
+        }
+      } catch (e) {}
+    }
+    if (req.cookies && req.cookies.admin_token) {
+      try {
+        const payload = jwtLib.verify(req.cookies.admin_token, secret);
+        if (payload && payload.role === 'admin') {
+          const r = db.prepare('SELECT COUNT(*) AS c FROM notifications WHERE for_admin = 1 AND COALESCE(is_read,0) = 0').get();
+          res.locals.adminUnreadCount = r ? r.c : 0;
+        }
+      } catch (e) {}
+    }
+  } catch (e) {}
   next();
 });
 
@@ -234,7 +266,7 @@ app.get('/', optionalUser, (req, res) => {
   if (price_from) { sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) >= ?'; params.push(parseFloat(price_from) || 0); }
   if (price_to) { sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) <= ?'; params.push(parseFloat(price_to) || 0); }
   if (area_from) { sql += ' AND (area IS NULL OR CAST(area AS REAL) >= ?)'; params.push(parseFloat(area_from) || 0); }
-  if (category) { sql += ' AND COALESCE(category, "house") = ?'; params.push(category); }
+  if (category) { sql += " AND LOWER(COALESCE(category, 'house')) = LOWER(?)"; params.push(category); }
   if (rent_period) { sql += ' AND (rent_period IS NULL OR rent_period = "" OR rent_period = ?)'; params.push(rent_period); }
   sql += ' ORDER BY created_at DESC';
   let properties = [];
