@@ -311,3 +311,44 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 0 0 1px rgba(52,211,153,0.25);
 }
 #boxUser, #boxPhone { min-height: 4.5rem; }
+
+/* Public auth pages solid theme */
+body.page-public {
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 10% -10%, rgba(52,211,153,0.12), transparent 55%),
+              radial-gradient(900px 500px at 100% 0%, rgba(245,230,168,0.08), transparent 50%),
+              var(--bg, #0b1220);
+  color: #e5e7eb;
+}
+.auth-wrap {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 0.75rem;
+}
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(15, 23, 42, 0.92) !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+}
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  margin-inline-start: 0.35rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: middle;
+}
+.nav-badge-link { display: inline-flex; align-items: center; }
+.cpanel-side a { display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; }
