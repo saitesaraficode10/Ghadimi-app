@@ -9,7 +9,7 @@
 
   <form method="POST" action="/profile" class="panel stack" style="max-width:520px">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <div><label class="label">Name</label><input class="input" name="full_name" required value="<%= user.full_name %>"></div>
+    <div><label class="label"><%= t('name') %></label><input class="input" name="full_name" required value="<%= user.full_name %>"></div>
     <div>
       <label class="label"><%= t('phone') %></label>
       <div class="phone-row">
@@ -31,11 +31,11 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <h2 style="margin:0;font-size:1rem"><%= t('change_password') %></h2>
     <div class="pw-row">
-      <input class="input" type="password" name="current_password" id="curPw" required placeholder="current">
+      <input class="input" type="password" name="current_password" id="curPw" required placeholder="<%= t('current_password') %>">
       <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="curPw">👁</button>
     </div>
     <div class="pw-row">
-      <input class="input" type="password" name="new_password" id="npw" required minlength="8" placeholder="new">
+      <input class="input" type="password" name="new_password" id="npw" required minlength="8" placeholder="<%= t('new_password') %>">
       <button type="button" class="btn btn-ghost pw-eye" data-toggle-pw="npw">👁</button>
     </div>
     <button class="btn btn-primary" type="submit"><%= t('change_password') %></button>
@@ -45,23 +45,25 @@
     <h2 style="margin:0;font-size:1rem"><%= t('invite') %></h2>
     <form method="POST" action="/profile/invite">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button class="btn btn-primary" type="submit">+ <%= t('invite') %></button>
+      <button class="btn btn-primary" type="submit">+ <%= t('create_invite') %></button>
     </form>
     <% if (typeof invites !== 'undefined' && invites && invites.length) { %>
       <% invites.forEach(inv => { %>
         <div class="panel" style="background:rgba(0,0,0,0.2);margin-top:0.5rem">
           <div dir="ltr" style="font-family:monospace;font-weight:700"><%= inv.code %></div>
-          <div class="muted">ثبت‌نام با این کد: <b><%= inv.used_count || 0 %></b></div>
+          <div class="muted"><%= t('invite_uses') %>: <b><%= inv.used_count || 0 %></b></div>
           <div class="muted" style="font-size:0.8rem;word-break:break-all" dir="ltr">
             Link: <%= (typeof baseUrl !== 'undefined' ? baseUrl : '') %>/r/<%= inv.code %>
           </div>
-          <button type="button" class="btn btn-ghost" style="margin-top:0.35rem" onclick="navigator.clipboard && navigator.clipboard.writeText('<%= (typeof baseUrl !== 'undefined' ? baseUrl : '') %>/r/<%= inv.code %>')">Copy link</button>
+          <button type="button" class="btn btn-ghost" style="margin-top:0.35rem"
+            data-copy="<%= (typeof baseUrl !== 'undefined' ? baseUrl : '') %>/r/<%= inv.code %>"
+            data-copied-label="<%= t('copied') %>"><%= t('copy_link') %></button>
         </div>
       <% }) %>
     <% } else { %>
-      <p class="muted">کدی نساخته‌اید</p>
+      <p class="muted"><%= t('no_invite_yet') %></p>
     <% } %>
-    <p class="muted">مجموع دعوت‌های موفق: <b><%= typeof totalInvites !== 'undefined' ? totalInvites : 0 %></b></p>
+    <p class="muted"><%= t('total_invites') %>: <b><%= typeof totalInvites !== 'undefined' ? totalInvites : 0 %></b></p>
   </div>
 </div>
 </div>
