@@ -181,6 +181,23 @@ function statusText(lang, s) {
   return statusLabel(lang, s);
 }
 
+
+function locField(row, field, lang) {
+  if (!row) return '';
+  const L = lang || 'fa';
+  if (L && L !== 'fa') {
+    const v = row[field + '_' + L];
+    if (v != null && String(v).trim() !== '') return String(v);
+  }
+  // fa / default
+  const base = row[field];
+  if (base != null && String(base).trim() !== '') return String(base);
+  // try fa explicit
+  const fa = row[field + '_fa'];
+  if (fa != null && String(fa).trim() !== '') return String(fa);
+  return '';
+}
+
 function statusLabel(lang, s) {
   const keys = new Set(['available','rented','reserved','pending','approved','rejected','completed','cancelled','pending_payment','paid','confirmed','scheduled','processing']);
   if (keys.has(s)) return t(lang, s);
@@ -248,6 +265,7 @@ app.use((req, res, next) => {
   res.locals.dir = lang === 'fa' || lang === 'hy' ? 'rtl' : 'ltr';
   res.locals.statusLabel = (s) => statusLabel(lang, s);
   res.locals.formatDateTime = (v) => formatDateTime(v, lang);
+  res.locals.locField = (row, field) => locField(row, field, lang);
   next();
 });
 
@@ -626,12 +644,20 @@ app.post('/admin/properties/new', authAdmin, (req, res) => {
       }
       const image_path = (req.files && req.files[0]) ? ('/uploads/properties/' + req.files[0].filename) : null;
       const info = db.prepare(`
-        INSERT INTO properties (code, title, city, address, rooms, area, price_monthly, currency, description, image_path, map_url, lat, lng, contact_whatsapp, contact_whatsapp2, status, available_from, max_people, category, rent_period)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO properties (code, title, title_en, title_ru, title_hy, city, city_en, city_ru, city_hy, address, address_en, address_ru, address_hy, rooms, area, price_monthly, currency, description, description_en, description_ru, description_hy, image_path, map_url, lat, lng, contact_whatsapp, contact_whatsapp2, status, available_from, max_people, category, rent_period)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        code, title, sanitizeText(b.city, 80) || 'Yerevan', sanitizeText(b.address, 120) || null,
+        code, title,
+        sanitizeText(b.title_en, 120) || null, sanitizeText(b.title_ru, 120) || null, sanitizeText(b.title_hy, 120) || null,
+        sanitizeText(b.city, 80) || 'Yerevan',
+        sanitizeText(b.city_en, 80) || null, sanitizeText(b.city_ru, 80) || null, sanitizeText(b.city_hy, 80) || null,
+        sanitizeText(b.address, 120) || null,
+        sanitizeText(b.address_en, 120) || null, sanitizeText(b.address_ru, 120) || null, sanitizeText(b.address_hy, 120) || null,
         parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
-        parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD', sanitizeText(b.description, 5000) || null, image_path,
+        parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD',
+        sanitizeText(b.description, 5000) || null,
+        sanitizeText(b.description_en, 5000) || null, sanitizeText(b.description_ru, 5000) || null, sanitizeText(b.description_hy, 5000) || null,
+        image_path,
         sanitizeText(b.map_url, 500) || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
         sanitizeText(b.contact_whatsapp, 30) || null, sanitizeText(b.contact_whatsapp2, 30) || null, b.status || 'available', b.available_from || null,
         parseInt(b.max_people || '2', 10), sanitizeText(b.category, 20) || 'house', sanitizeText(b.rent_period, 30) || 'monthly_1_3'
@@ -675,13 +701,22 @@ app.post('/admin/properties/:id/edit', authAdmin, (req, res) => {
         del.forEach(id => delStmt.run(parseInt(id, 10), property.id));
       }
       db.prepare(`
-        UPDATE properties SET title=?, city=?, address=?, rooms=?, area=?, price_monthly=?, currency=?, description=?,
+        UPDATE properties SET title=?, title_en=?, title_ru=?, title_hy=?, city=?, city_en=?, city_ru=?, city_hy=?,
+          address=?, address_en=?, address_ru=?, address_hy=?, rooms=?, area=?, price_monthly=?, currency=?,
+          description=?, description_en=?, description_ru=?, description_hy=?,
           map_url=?, lat=?, lng=?, contact_whatsapp=?, contact_whatsapp2=?, status=?, available_from=?, max_people=?, category=?, rent_period=?, updated_at=datetime('now')
         WHERE id=?
       `).run(
-        sanitizeText(b.title, 120), sanitizeText(b.city, 80), sanitizeText(b.address, 120) || null,
+        sanitizeText(b.title, 120),
+        sanitizeText(b.title_en, 120) || null, sanitizeText(b.title_ru, 120) || null, sanitizeText(b.title_hy, 120) || null,
+        sanitizeText(b.city, 80),
+        sanitizeText(b.city_en, 80) || null, sanitizeText(b.city_ru, 80) || null, sanitizeText(b.city_hy, 80) || null,
+        sanitizeText(b.address, 120) || null,
+        sanitizeText(b.address_en, 120) || null, sanitizeText(b.address_ru, 120) || null, sanitizeText(b.address_hy, 120) || null,
         parseInt(b.rooms || '1', 10), b.area ? parseFloat(b.area) : null,
-        parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD', sanitizeText(b.description, 5000) || null,
+        parseFloat(b.price_monthly), sanitizeText(b.currency, 10) || 'AMD',
+        sanitizeText(b.description, 5000) || null,
+        sanitizeText(b.description_en, 5000) || null, sanitizeText(b.description_ru, 5000) || null, sanitizeText(b.description_hy, 5000) || null,
         sanitizeText(b.map_url, 500) || null, b.lat ? parseFloat(b.lat) : null, b.lng ? parseFloat(b.lng) : null,
         sanitizeText(b.contact_whatsapp, 30) || null, sanitizeText(b.contact_whatsapp2, 30) || null, b.status, b.available_from || null,
         parseInt(b.max_people || '2', 10), sanitizeText(b.category, 20) || 'house', sanitizeText(b.rent_period, 30) || 'monthly_1_3', property.id
@@ -1223,6 +1258,7 @@ try {
   if (!pc.includes('category')) db.exec("ALTER TABLE properties ADD COLUMN category TEXT DEFAULT 'house'");
   if (!pc.includes('rent_period')) db.exec("ALTER TABLE properties ADD COLUMN rent_period TEXT DEFAULT 'monthly_1_3'");
   if (!pc.includes('contact_whatsapp2')) db.exec("ALTER TABLE properties ADD COLUMN contact_whatsapp2 TEXT");
+  ['title_en','title_ru','title_hy','description_en','description_ru','description_hy','city_en','city_ru','city_hy','address_en','address_ru','address_hy'].forEach(function(col){ if (!pc.includes(col)) try { db.exec('ALTER TABLE properties ADD COLUMN ' + col + ' TEXT'); } catch(e){} });
 } catch (e) { console.log('prop migrate', e.message); }
 try {
   const nc = db.prepare('PRAGMA table_info(notifications)').all().map(c => c.name);
