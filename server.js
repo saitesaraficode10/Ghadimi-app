@@ -151,7 +151,7 @@ function t(lang, key) {
 }
 
 function statusLabel(lang, s) {
-  const keys = new Set(['available','rented','reserved','pending','approved','rejected','completed','cancelled','pending_payment','paid','confirmed']);
+  const keys = new Set(['available','rented','reserved','pending','approved','rejected','completed','cancelled','pending_payment','paid','confirmed','scheduled','processing']);
   if (keys.has(s)) return t(lang, s);
   return s || '—';
 }
@@ -343,6 +343,13 @@ app.post('/property/:code/visit', authUser, (req, res) => {
     (request_code, user_id, property_id, full_name, phone, whatsapp, need_from, rent_duration, people_count, message, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
   `).run(request_code, req.user ? req.user.id : null, property.id, full_name, phone, whatsapp || null, need_from, rent_duration, people_count, message || null);
+  try {
+    notifyAdmin(
+      'درخواست بازدید جدید',
+      (full_name || '') + ' | ملک: ' + property.code + ' | کد: ' + request_code,
+      '/admin/requests'
+    );
+  } catch (e) { console.log('visit notify', e.message); }
   res.render('request-success', { user: req.user, request_code, title: 'OK' });
 });
 
@@ -686,7 +693,66 @@ app.post('/admin/requests/:id/update', authAdmin, (req, res) => {
     db.prepare(`UPDATE visit_requests SET status=?, visit_datetime=?, admin_note=?, updated_at=datetime('now') WHERE id=?`)
       .run(status, visit_datetime || null, admin_note || null, req.params.id);
   }
+  try {
+    const vr = db.prepare('SELECT * FROM visit_requests WHERE id = ?').get(req.params.id);
+    if (vr && vr.user_id) {
+      let title = 'به‌روزرسانی درخواست بازدید';
+      let body = 'وضعیت: ' + (status || '') + (visit_datetime ? (' | زمان: ' + visit_datetime) : '') + (visit_location ? (' | مکان: ' + visit_location) : '');
+      if (admin_note) body += ' | پیام ادمین: ' + admin_note;
+      notify(vr.user_id, title, body, '/my-requests');
+    }
+  } catch (e) { console.log('visit user notify', e.message); }
   res.redirect('/admin/requests/' + req.params.id);
+});
+
+
+
+// ---- Notification detail + live poll ----
+app.get('/notifications/:id', authUser, (req, res) => {
+  let row = null;
+  try {
+    row = db.prepare('SELECT * FROM notifications WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+    if (row) db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(row.id);
+  } catch (e) {}
+  if (!row) return res.redirect('/notifications');
+  res.render('notification-detail', { user: req.user, n: row, title: t(res.locals.lang, 'notifications') });
+});
+
+app.get('/admin/notifications/:id', authAdmin, (req, res) => {
+  let row = null;
+  try {
+    row = db.prepare('SELECT * FROM notifications WHERE id = ? AND for_admin = 1').get(req.params.id);
+    if (row) db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(row.id);
+  } catch (e) {}
+  if (!row) return res.redirect('/admin/notifications');
+  res.render('admin/notification-detail', { admin: req.admin, n: row, title: 'اعلان' });
+});
+
+app.get('/api/notifications/unread', (req, res) => {
+  let userCount = 0, adminCount = 0;
+  try {
+    const jwtLib = require('jsonwebtoken');
+    const { JWT_SECRET: secret } = require('./middleware/auth');
+    if (req.cookies && req.cookies.token) {
+      try {
+        const payload = jwtLib.verify(req.cookies.token, secret);
+        if (payload && payload.id) {
+          const r = db.prepare('SELECT COUNT(*) AS c FROM notifications WHERE user_id = ? AND COALESCE(is_read,0) = 0').get(payload.id);
+          userCount = r ? r.c : 0;
+        }
+      } catch (e) {}
+    }
+    if (req.cookies && req.cookies.admin_token) {
+      try {
+        const payload = jwtLib.verify(req.cookies.admin_token, secret);
+        if (payload && payload.role === 'admin') {
+          const r = db.prepare('SELECT COUNT(*) AS c FROM notifications WHERE for_admin = 1 AND COALESCE(is_read,0) = 0').get();
+          adminCount = r ? r.c : 0;
+        }
+      } catch (e) {}
+    }
+  } catch (e) {}
+  res.json({ user: userCount, admin: adminCount });
 });
 
 
@@ -940,8 +1006,13 @@ app.post('/book/:code', authUser, (req, res) => {
   const booking = db.prepare('SELECT * FROM bookings WHERE booking_code = ?').get(booking_code);
   if (pay_method === 'online') {
     const cardNum = cards[pay_card_type] || '';
-    const waDigits = String(getSetting('contact_whatsapp','') || getSetting('contact_phone','')).replace(/[^0-9]/g,'');
-    return res.render('book-pending', { user: req.user, booking, cardNum, waDigits, title: 'در انتظار پرداخت' });
+    const wa1 = String(getSetting('contact_whatsapp','') || '').replace(/[^0-9]/g,'');
+    const wa2 = String(getSetting('contact_whatsapp2','') || '').replace(/[^0-9]/g,'');
+    const phone1 = getSetting('contact_phone','');
+    const phone2 = getSetting('contact_phone2','');
+    const label1 = getSetting('contact_label', 'پشتیبانی ۱');
+    const label2 = getSetting('contact_label2', 'پشتیبانی ۲');
+    return res.render('book-pending', { user: req.user, booking, cardNum, wa1, wa2, phone1, phone2, label1, label2, title: 'در انتظار پرداخت' });
   }
   res.render('book-success', { user: req.user, booking_code, pay_method, cards, property, title: 'رزرو ثبت شد' });
 });
@@ -1008,14 +1079,27 @@ app.get('/admin/bookings/:code/receipt', authAdmin, (req, res) => {
 });
 
 app.get('/admin/bookings', authAdmin, (req, res) => {
-  const rows = db.prepare(`
-    SELECT b.*, p.title, p.code AS property_code, u.full_name, u.user_code, u.phone_am
-    FROM bookings b
-    JOIN properties p ON p.id = b.property_id
-    JOIN users u ON u.id = b.user_id
-    ORDER BY b.created_at DESC
-  `).all();
-  res.render('admin/bookings', { admin: req.admin, rows, title: 'رزروها' });
+  const q = sanitizeText(req.query.q || '', 40);
+  let rows;
+  if (q) {
+    rows = db.prepare(`
+      SELECT b.*, p.title, p.code AS property_code, u.full_name, u.user_code, u.phone_am
+      FROM bookings b
+      JOIN properties p ON p.id = b.property_id
+      JOIN users u ON u.id = b.user_id
+      WHERE b.booking_code LIKE ? OR p.code LIKE ? OR u.full_name LIKE ? OR u.phone_am LIKE ?
+      ORDER BY b.created_at DESC
+    `).all('%' + q + '%', '%' + q + '%', '%' + q + '%', '%' + q + '%');
+  } else {
+    rows = db.prepare(`
+      SELECT b.*, p.title, p.code AS property_code, u.full_name, u.user_code, u.phone_am
+      FROM bookings b
+      JOIN properties p ON p.id = b.property_id
+      JOIN users u ON u.id = b.user_id
+      ORDER BY b.created_at DESC
+    `).all();
+  }
+  res.render('admin/bookings', { admin: req.admin, rows, q, title: 'رزروها / مدیریت درخواست مشتری' });
 });
 
 app.post('/admin/bookings/:id/update', authAdmin, (req, res) => {
@@ -1024,6 +1108,19 @@ app.post('/admin/bookings/:id/update', authAdmin, (req, res) => {
   const admin_note = sanitizeText(req.body.admin_note, 1000);
   db.prepare(`UPDATE bookings SET status=?, pay_status=?, admin_note=?, updated_at=datetime('now') WHERE id=?`)
     .run(status, pay_status, admin_note || null, req.params.id);
+  try {
+    const bk = db.prepare('SELECT * FROM bookings WHERE id = ?').get(req.params.id);
+    if (bk && bk.user_id) {
+      const title = status === 'cancelled' ? 'لغو رزرو توسط ادمین' : 'به‌روزرسانی رزرو';
+      const body = (admin_note || ('وضعیت: ' + status)) + ' | کد: ' + (bk.booking_code || '');
+      // insert and link to this notification id
+      ensureNotificationsTable();
+      const info = db.prepare('INSERT INTO notifications (user_id, title, body, link, for_admin) VALUES (?, ?, ?, ?, 0)')
+        .run(bk.user_id, title, body, null);
+      const nid = info.lastInsertRowid;
+      db.prepare('UPDATE notifications SET link = ? WHERE id = ?').run('/notifications/' + nid, nid);
+    }
+  } catch (e) { console.log('book notify', e.message); }
   res.redirect('/admin/bookings');
 });
 
