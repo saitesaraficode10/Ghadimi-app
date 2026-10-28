@@ -11,7 +11,13 @@
   <% } else { %>
     <div><label class="label"><%= t('property_code') %></label><input class="input" value="<%= property.code %>" disabled></div>
   <% } %>
-  <div><label class="label">عنوان *</label><input class="input" name="title" required maxlength="120" value="<%= property ? property.title : '' %>"></div>
+  <div class="panel stack" style="background:rgba(0,0,0,0.2);padding:0.85rem;border-radius:12px">
+    <b>عنوان به چند زبان *</b>
+    <div><label class="label">فارسی (اصلی) *</label><input class="input" name="title" required maxlength="120" value="<%= property ? property.title : '' %>"></div>
+    <div><label class="label">English</label><input class="input" name="title_en" maxlength="120" dir="ltr" value="<%= property && property.title_en ? property.title_en : '' %>"></div>
+    <div><label class="label">Русский</label><input class="input" name="title_ru" maxlength="120" dir="ltr" value="<%= property && property.title_ru ? property.title_ru : '' %>"></div>
+    <div><label class="label">Հայերեն</label><input class="input" name="title_hy" maxlength="120" value="<%= property && property.title_hy ? property.title_hy : '' %>"></div>
+  </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
     <div>
@@ -41,7 +47,13 @@
         <% }) %>
       </select>
     </div>
-    <div><label class="label">آدرس/محله</label><input class="input" name="address" value="<%= property && property.address ? property.address : '' %>"></div>
+    <div>
+      <label class="label">آدرس/محله (فارسی)</label>
+      <input class="input" name="address" value="<%= property && property.address ? property.address : '' %>">
+      <input class="input" name="address_en" placeholder="Address EN" dir="ltr" value="<%= property && property.address_en ? property.address_en : '' %>" style="margin-top:0.3rem">
+      <input class="input" name="address_ru" placeholder="Адрес RU" dir="ltr" value="<%= property && property.address_ru ? property.address_ru : '' %>" style="margin-top:0.3rem">
+      <input class="input" name="address_hy" placeholder="Հասցե HY" value="<%= property && property.address_hy ? property.address_hy : '' %>" style="margin-top:0.3rem">
+    </div>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem">
@@ -71,7 +83,13 @@
     </select>
   </div>
   <div><label class="label">از تاریخ آزاد</label><input class="input" type="date" name="available_from" value="<%= property && property.available_from ? property.available_from : '' %>"></div>
-  <div><label class="label">توضیحات</label><textarea class="input" name="description" rows="4"><%= property && property.description ? property.description : '' %></textarea></div>
+  <div class="panel stack" style="background:rgba(0,0,0,0.2);padding:0.85rem;border-radius:12px">
+    <b>توضیحات به چند زبان</b>
+    <div><label class="label">فارسی</label><textarea class="input" name="description" rows="3"><%= property && property.description ? property.description : '' %></textarea></div>
+    <div><label class="label">English</label><textarea class="input" name="description_en" rows="3" dir="ltr"><%= property && property.description_en ? property.description_en : '' %></textarea></div>
+    <div><label class="label">Русский</label><textarea class="input" name="description_ru" rows="3" dir="ltr"><%= property && property.description_ru ? property.description_ru : '' %></textarea></div>
+    <div><label class="label">Հայերեն</label><textarea class="input" name="description_hy" rows="3"><%= property && property.description_hy ? property.description_hy : '' %></textarea></div>
+  </div>
   <div><label class="label">لینک نقشه</label><input class="input" name="map_url" dir="ltr" value="<%= property && property.map_url ? property.map_url : '' %>"></div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
