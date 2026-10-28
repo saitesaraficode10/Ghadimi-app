@@ -106,5 +106,16 @@
   "no_notifications": "Нет уведомлений",
   "already_have_account": "Уже есть аккаунт?",
   "no_account": "Нет аккаунта?",
-  "required": "обязательно"
+  "required": "обязательно",
+  "scheduled": "Визит назначен",
+  "processing": "В обработке",
+  "done": "Готово",
+  "choose_category": "Выберите категорию",
+  "search": "Поиск",
+  "booking_manage": "Брони клиентов",
+  "property_code": "Код объекта",
+  "visit_time": "Время визита",
+  "visit_place": "Место визита",
+  "jalali": "Джалали",
+  "gregorian": "Григорианский"
 }

@@ -106,5 +106,16 @@
   "no_notifications": "No notifications",
   "already_have_account": "Have an account?",
   "no_account": "No account?",
-  "required": "required"
+  "required": "required",
+  "scheduled": "Visit scheduled",
+  "processing": "Processing",
+  "done": "Done",
+  "choose_category": "Choose category",
+  "search": "Search",
+  "booking_manage": "Customer bookings",
+  "property_code": "Property code",
+  "visit_time": "Visit time",
+  "visit_place": "Visit location",
+  "jalali": "Jalali",
+  "gregorian": "Gregorian"
 }

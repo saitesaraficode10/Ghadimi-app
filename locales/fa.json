@@ -106,5 +106,16 @@
   "no_notifications": "اعلانی نیست",
   "already_have_account": "حساب دارید؟",
   "no_account": "حساب ندارید؟",
-  "required": "الزامی"
+  "required": "الزامی",
+  "scheduled": "زمان بازدید تعیین شد",
+  "processing": "در حال بررسی",
+  "done": "انجام شد",
+  "choose_category": "دسته را انتخاب کنید",
+  "search": "جستجو",
+  "booking_manage": "مدیریت رزرو مشتریان",
+  "property_code": "کد ملک",
+  "visit_time": "زمان بازدید",
+  "visit_place": "محل بازدید",
+  "jalali": "شمسی",
+  "gregorian": "میلادی"
 }

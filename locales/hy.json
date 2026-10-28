@@ -106,5 +106,16 @@
   "no_notifications": "Ծանուցումներ չկան",
   "already_have_account": "Ունե՞ք հաշիվ",
   "no_account": "Չունե՞ք հաշիվ",
-  "required": "պարտադիր"
+  "required": "պարտադիր",
+  "scheduled": "Այցը նշանակված է",
+  "processing": "Մշակման մեջ",
+  "done": "Կատարված",
+  "choose_category": "Ընտրեք կատեգորիան",
+  "search": "Որոնում",
+  "booking_manage": "Հաճախորդների ամրագրումներ",
+  "property_code": "Գույքի կոդ",
+  "visit_time": "Այցի ժամանակ",
+  "visit_place": "Այցի վայր",
+  "jalali": "Պարսկական",
+  "gregorian": "Գրիգորյան"
 }
