@@ -352,3 +352,33 @@ body.page-public {
 }
 .nav-badge-link { display: inline-flex; align-items: center; }
 .cpanel-side a { display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; }
+
+input[type="date"],
+input[type="datetime-local"],
+input.date-input {
+  color-scheme: light !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 2px solid #34d399 !important;
+  min-height: 2.9rem !important;
+  font-size: 1rem !important;
+  border-radius: 10px !important;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  opacity: 1 !important;
+  cursor: pointer !important;
+  filter: none !important;
+  background: #10b981;
+  border-radius: 6px;
+  padding: 4px;
+  width: 1.4rem;
+  height: 1.4rem;
+}
+.jalali-hint {
+  font-size: 0.8rem;
+  color: #a7f3d0;
+  margin-top: 0.25rem;
+  direction: rtl;
+}
+.cat-card:hover { border-color: rgba(52,211,153,0.5); transform: translateY(-2px); }
