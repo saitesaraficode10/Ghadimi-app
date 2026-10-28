@@ -60,13 +60,74 @@
   }
   fillCountrySelects();
 
-  // Chatbot — smarter guide for Ghadimi Amlak
+  // Chatbot — multi-language (fa/en/ru/hy)
   var botBtn = document.getElementById('chatBotBtn');
   var botBox = document.getElementById('chatBotBox');
   var botClose = document.getElementById('chatBotClose');
   var botForm = document.getElementById('chatBotForm');
   var botInput = document.getElementById('chatBotInput');
   var botMsgs = document.getElementById('chatBotMsgs');
+  var BOT_LANG = (document.documentElement.lang || 'fa').slice(0, 2);
+  if (['fa','en','ru','hy'].indexOf(BOT_LANG) === -1) BOT_LANG = 'fa';
+
+  var BOT = {
+    fa: {
+      hi: 'سلام! من دستیار املاک قدیمی هستم. درباره ثبت‌نام، بازدید، رزرو، قیمت و تماس بپرسید.',
+      chips: ['ثبت‌نام', 'بازدید', 'رزرو', 'تماس'],
+      fallback: 'متوجه نشدم. بپرسید: ثبت‌نام، ورود، بازدید، رزرو، قیمت، تماس.',
+      answers: [
+        { k: ['ثبت','عضویت','register','signup'], a: 'از منو «ثبت‌نام» را بزنید. نام، نام کاربری، تلفن، واتساپ و رمز (حداقل ۸ کاراکتر) را وارد کنید.' },
+        { k: ['ورود','login'], a: 'از «ورود» با نام کاربری یا شماره تلفن و رمز وارد شوید.' },
+        { k: ['بازدید','ویزیت','visit'], a: 'ملک را باز کنید → درخواست بازدید → تاریخ و تعداد نفرات را بفرستید. ادمین زمان را اعلام می‌کند.' },
+        { k: ['رزرو','book'], a: 'در صفحه ملک «رزرو» را بزنید، نوع اجاره و پرداخت را انتخاب کنید. اگر کارت‌به‌کارت است، کارت را ببینید و رسید را به واتساپ پشتیبانی بفرستید.' },
+        { k: ['قیمت','اجاره','price'], a: 'قیمت هر آگهی روی کارت ملک نوشته شده. با فیلتر قیمت می‌توانید محدود کنید.' },
+        { k: ['تماس','واتساپ','contact','support'], a: 'از منو «تماس» شماره و QR واتساپ پشتیبانی را ببینید.' },
+        { k: ['فیلتر','filter','جستجو'], a: 'در صفحه اصلی دسته خانه/مغازه را انتخاب کنید و شهر، قیمت و اتاق را فیلتر کنید.' }
+      ]
+    },
+    en: {
+      hi: 'Hi! I am the Ghadimi property assistant. Ask about signup, visits, booking, price or contact.',
+      chips: ['Sign up', 'Visit', 'Booking', 'Contact'],
+      fallback: 'I did not get that. Try: signup, login, visit, booking, price, contact.',
+      answers: [
+        { k: ['sign','register','signup','عضویت'], a: 'Open Register. Enter full name, username, phone, WhatsApp and a password (min 8 chars).' },
+        { k: ['login','ورود'], a: 'Use Login with username or phone and your password.' },
+        { k: ['visit','tour','بازدید'], a: 'Open a property → Request visit → send date and number of people. Admin will set the visit time.' },
+        { k: ['book','reserv','رزرو'], a: 'On the property page tap Book, choose rent type and payment. For card transfer, send the receipt to support WhatsApp with your booking code.' },
+        { k: ['price','rent','قیمت'], a: 'Each listing shows the price. Use the price filter on the home page.' },
+        { k: ['contact','whatsapp','support','تماس'], a: 'Open Contact for support phone numbers and WhatsApp QR codes.' },
+        { k: ['filter','search','فیلتر'], a: 'On the home page pick House or Shop, then filter by city, price and rooms.' }
+      ]
+    },
+    ru: {
+      hi: 'Здравствуйте! Я помощник Ghadimi. Спросите про регистрацию, визит, бронь, цену или контакт.',
+      chips: ['Регистрация', 'Визит', 'Бронь', 'Контакт'],
+      fallback: 'Не понял. Спросите: регистрация, вход, визит, бронь, цена, контакт.',
+      answers: [
+        { k: ['регистр','sign','register'], a: 'Откройте «Регистрация». Укажите имя, логин, телефон, WhatsApp и пароль (мин. 8 символов).' },
+        { k: ['вход','login'], a: 'Войдите через «Вход» с логином или телефоном и паролем.' },
+        { k: ['визит','visit','базд'], a: 'Откройте объект → запрос визита → укажите дату и число людей. Админ назначит время.' },
+        { k: ['брон','book','reserv'], a: 'На странице объекта нажмите «Бронь», выберите тип и оплату. При переводе отправьте чек в WhatsApp поддержки с кодом брони.' },
+        { k: ['цен','price','аренд'], a: 'Цена указана на карточке. Используйте фильтр цены на главной.' },
+        { k: ['контакт','whatsapp','support'], a: 'В разделе «Контакт» есть телефоны и QR WhatsApp.' },
+        { k: ['фильтр','filter','поиск'], a: 'На главной выберите Дом или Магазин и фильтруйте по городу, цене и комнатам.' }
+      ]
+    },
+    hy: {
+      hi: 'Բարև։ Ես Ghadimi օգնականն եմ։ Հարցրեք գրանցման, այցի, ամրագրման, գնի կամ կապի մասին։',
+      chips: ['Գրանցում', 'Այց', 'Ամրագրում', 'Կապ'],
+      fallback: 'Չհասկացա։ Հարցրեք՝ գրանցում, մուտք, այց, ամրագրում, գին, կապ։',
+      answers: [
+        { k: ['գրանց','sign','register'], a: 'Բացեք «Գրանցում»։ Լրացրեք անուն, օգտանուն, հեռախոս, WhatsApp և գաղտնաբառ (առնվազն 8 նիշ)։' },
+        { k: ['մուտք','login'], a: 'Մուտք գործեք օգտանունով կամ հեռախոսով և գաղտնաբառով։' },
+        { k: ['այց','visit'], a: 'Բացեք գույքը → հայց այցի → ուղարկեք ամսաթիվը և մարդկանց թիվը։ Ադմինը կսահմանի ժամը։' },
+        { k: ['ամրագ','book','reserv'], a: 'Գույքի էջում սեղմեք ամրագրում, ընտրեք տեսակը և վճարումը։ Քարտից քարտի դեպքում անդորրագիրը ուղարկեք WhatsApp աջակցությանը՝ կոդով։' },
+        { k: ['գին','price'], a: 'Գինը նշված է քարտի վրա։ Օգտագործեք գնի ֆիլտրը գլխավոր էջում։' },
+        { k: ['կապ','whatsapp','contact'], a: '«Կապ» բաժնում կան հեռախոսներ և WhatsApp QR։' },
+        { k: ['ֆիլտր','filter'], a: 'Գլխավոր էջում ընտրեք Տուն կամ Խանութ և ֆիլտրեք ըստ քաղաքի, գնի և սենյակների։' }
+      ]
+    }
+  };
 
   function addMsg(text, who) {
     if (!botMsgs) return;
@@ -76,160 +137,53 @@
     botMsgs.appendChild(d);
     botMsgs.scrollTop = botMsgs.scrollHeight;
   }
-
   function addQuick(labels) {
     if (!botMsgs) return;
     var wrap = document.createElement('div');
     wrap.className = 'chat-quick';
-    labels.forEach(function (lab) {
+    (labels || []).forEach(function (lab) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'chat-chip';
       b.textContent = lab;
       b.addEventListener('click', function () {
         addMsg(lab, 'user');
-        setTimeout(function () { respond(lab); }, 280);
+        setTimeout(function () { respond(lab); }, 200);
       });
       wrap.appendChild(b);
     });
     botMsgs.appendChild(wrap);
     botMsgs.scrollTop = botMsgs.scrollHeight;
   }
-
   function norm(s) {
-    return String(s || '')
-      .toLowerCase()
-      .replace(/ي/g, 'ی').replace(/ك/g, 'ک')
-      .replace(/[\u064B-\u065F]/g, '')
-      .trim();
+    return String(s || '').toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک').trim();
   }
-
-  var INTENTS = [
-    {
-      keys: ['فیلتر', 'filter', 'جستجو', 'پیدا کردن', 'چطور پیدا', 'شهر'],
-      a: 'راهنمای فیلتر ملک:\n۱) شهر را از لیست انتخاب کنید (ایروان، گیومری، وانادزور، ...).\n۲) دسته: خانه یا مغازه.\n۳) نوع اجاره: روزانه / ۱–۳ ماه / ۶–۱۲ ماه / سالیانه.\n۴) اتاق و قیمت از–تا را در صورت نیاز پر کنید.\n۵) وضعیت را «همه» بگذارید اگر ملک نمی‌بینید.\n۶) دکمه فیلتر را بزنید. اگر خالی بود فیلترها را پاک کنید و فقط شهر را بزنید.'
-    },
-
-    {
-      keys: ['سلام', 'hello', 'hi', 'درود', 'بفرمایید', 'مرحبا', 'բարև'],
-      a: 'سلام 👋 به املاک قدیمی خوش آمدید.\nمی‌توانم درباره ثبت‌نام، ورود، جستجوی خانه، درخواست بازدید، رزرو و تماس با پشتیبانی راهنمایی کنم.\nچه کاری دارید؟'
-    },
-    {
-      keys: ['ثبت نام', 'ثبت‌نام', 'عضویت', 'register', 'signup', 'اکانت بسازم'],
-      a: 'برای ثبت‌نام:\n۱) از منو «ثبت‌نام» را بزنید\n۲) نام کامل + یک نام کاربری انگلیسی (مثلاً aram2024)\n۳) شماره تماس با پیش‌شماره کشور + واتساپ\n۴) رمز (حداقل ۶ کاراکتر)\nبعد از ثبت‌نام با همان نام کاربری یا شماره وارد شوید.'
-    },
-    {
-      keys: ['ورود', 'لاگین', 'login', 'sign in', 'رمز', 'فراموشی', 'نام کاربری'],
-      a: 'ورود به حساب:\n• نام کاربری + رمز\n• یا شماره تماس (با پیش‌شماره، مثل +374...) + رمز\nاگر رمز را یادتان نیست، از صفحه «تماس» به پشتیبانی واتساپ پیام دهید تا راهنمایی‌تان کنند.'
-    },
-    {
-      keys: ['بازدید', 'ویزیت', 'tour', 'visit', 'بیایم ببینم', 'وقت بازدید', 'زمان بازدید'],
-      a: 'درخواست بازدید:\n۱) وارد حساب شوید\n۲) صفحه ملک را باز کنید\n۳) «درخواست بازدید» را پر کنید (از چه تاریخی نیاز دارید، مدت اجاره، تعداد نفرات)\n۴) تیم ما درخواست را بررسی می‌کند و تاریخ/ساعت/آدرس حضور را اعلام می‌کند.\nوضعیت را از «درخواست‌های من» ببینید.'
-    },
-    {
-      keys: ['رزرو', 'book', 'booking', 'اجاره کنم', 'پیش پرداخت', 'پیش‌پرداخت', 'کارت'],
-      a: 'رزرو ملک:\nاز صفحه ملک گزینه رزرو (روزانه/ماهانه/سالانه) را بزنید.\nاگر پرداخت آنلاین فعال باشد، کارت‌های اعلام‌شده (ایران / ارمنستان / Visa) در همان مسیر نشان داده می‌شود.\nبعد از واریز، وضعیت رزرو در «رزروهای من» قابل پیگیری است.'
-    },
-    {
-      keys: ['قیمت', 'اجاره', 'چند', 'هزینه', 'price', 'rent', 'ماهانه', 'دلار', 'درام'],
-      a: 'قیمت هر آگهی روی کارت ملک و صفحه جزئیات نوشته شده (معمولاً ماهانه و واحد پول).\nفیلتر شهر/اتاق/بودجه را در صفحه اصلی امتحان کنید. برای ملک خاص، کد یا عنوانش را بگویید تا مسیر بازدید را بگویم.'
-    },
-    {
-      keys: ['عکس', 'تصویر', 'گالری', 'photo', 'image'],
-      a: 'در صفحه هر ملک گالری عکس هست؛ روی عکس‌ها بزنید تا بزرگ‌تر ببینید. اگر عکسی لود نشد، اینترنت را چک کنید یا بعداً دوباره باز کنید.'
-    },
-    {
-      keys: ['علاقه', 'مورد علاقه', 'favorites', 'ذخیره', 'قلب'],
-      a: 'با ورود به حساب می‌توانید ملک را به «علاقه‌مندی‌ها» اضافه کنید و بعداً از منوی «علاقه‌مندی‌ها» ببینید.'
-    },
-    {
-      keys: ['تماس', 'پشتیبانی', 'واتساپ', 'whatsapp', 'شماره', 'qr', 'کیو آر', 'contact', 'پشتیبان'],
-      a: 'صفحه «تماس» را باز کنید — دو شماره پشتیبانی با QR جداگانه دارید.\nQR را اسکن کنید تا واتساپ باز شود، یا روی دکمه چت بزنید.\nلطفاً نام کاربری یا شماره ثبت‌نام را هم در پیام بنویسید.'
-    },
-    {
-      keys: ['آدرس', 'کجا', 'لوکیشن', 'نقشه', 'ایروان', 'yerevan', 'address', 'map'],
-      a: 'آدرس و موقعیت هر ملک در صفحه همان آگهی است (متن آدرس و در صورت وجود لینک نقشه).\nدفتر/پشتیبانی را از صفحه تماس ببینید.'
-    },
-    {
-      keys: ['زبان', 'english', 'روسی', 'ارمنی', 'فارسی', 'language'],
-      a: 'از گوشه منو می‌توانید زبان را عوض کنید: FA / EN / RU / HY.'
-    },
-    {
-      keys: ['پروفایل', 'ویرایش', 'شماره عوض', 'profile', 'تغییر واتساپ'],
-      a: 'بعد از ورود، «پروفایل من» را باز کنید تا مشخصات و شماره‌ها را در صورت فعال بودن ویرایش ببینید. اگر گزینه‌ای نبود، از پشتیبانی بخواهید.'
-    },
-    {
-      keys: ['کد مشتری', 'کد پیگیری', 'کد من'],
-      a: 'بعد از ثبت‌نام یک کد پیگیری نمایش داده می‌شود و در پروفایل هم هست. برای پیگیری با پشتیبانی همان کد یا نام کاربری را بفرستید.'
-    },
-    {
-      keys: ['مشکل', 'ارور', 'کار نمیکنه', 'باز نمیشه', 'باگ', 'error', 'نمیشه'],
-      a: 'لطفاً صفحه را یک‌بار رفرش کنید و با همان مرورگر دوباره وارد شوید.\nاگر باز هم مشکل بود: چه صفحه‌ای + چه دکمه‌ای + متن خطا را از «تماس» برای پشتیبانی بفرستید.'
-    },
-    {
-      keys: ['ساعت کار', 'کی جواب', 'آنلاین', 'پاسخ'],
-      a: 'دستیار خودکار ۲۴ ساعته است. پاسخ انسانی پشتیبانی معمولاً در ساعات کاری و از طریق واتساپ صفحه تماس انجام می‌شود.'
-    },
-    {
-      keys: ['ممنون', 'مرسی', 'تشکر', 'thanks'],
-      a: 'خواهش می‌کنم 🌿 اگر سؤال دیگری دارید بپرسید.'
-    }
-  ];
-
-  var BOT_LANG = (document.documentElement.lang || 'fa').slice(0, 2);
-  var BOT_I18N = {
-    fa: {
-      hi: 'سلام! من دستیار هوشمند املاک قدیمی هستم 🏠 از ثبت‌نام تا بازدید و رزرو راهنمایی می‌کنم.',
-      fallback: 'جزئیات کافی نبود. بپرسید: ثبت‌نام، ورود، بازدید، رزرو، قیمت، تماس.',
-      chips: ['ثبت‌نام', 'ورود', 'درخواست بازدید', 'رزرو ملک', 'تماس']
-    },
-    en: {
-      hi: 'Hi! I am Ghadimi assistant 🏠 I can help with signup, visit requests and booking.',
-      fallback: 'Need more detail. Ask about: signup, login, visit, booking, price, contact.',
-      chips: ['Sign up', 'Login', 'Visit request', 'Booking', 'Contact']
-    },
-    ru: {
-      hi: 'Здравствуйте! Я помощник Ghadimi 🏠 Помогу с регистрацией, визитом и бронью.',
-      fallback: 'Нужно больше деталей. Спросите: регистрация, вход, визит, бронь, цена, контакт.',
-      chips: ['Регистрация', 'Вход', 'Визит', 'Бронь', 'Контакт']
-    },
-    hy: {
-      hi: 'Բարև։ Ես Ghadimi օգնականն եմ 🏠 Կօգնեմ գրանցման, այցի և ամրագրման հարցերում։',
-      fallback: 'Ավելի շատ մանրամասներ են պետք։ Հարցրեք՝ գրանցում, մուտք, այց, ամրագրում, գին, կապ։',
-      chips: ['Գրանցում', 'Մուտք', 'Այց', 'Ամրագրում', 'Կապ']
-    }
-  };
-  function botT(key) {
-    var pack = BOT_I18N[BOT_LANG] || BOT_I18N.fa;
-    return pack[key] || BOT_I18N.fa[key] || key;
-  }
-
   function respond(raw) {
+    var pack = BOT[BOT_LANG] || BOT.fa;
     var q = norm(raw);
     if (!q) return;
     var best = null, score = 0;
-    INTENTS.forEach(function (it) {
+    (pack.answers || []).forEach(function (it) {
       var s = 0;
-      it.keys.forEach(function (k) {
-        if (q.indexOf(norm(k)) !== -1) s += (norm(k).length > 3 ? 2 : 1);
+      (it.k || []).forEach(function (k) {
+        if (q.indexOf(norm(k)) !== -1) s += 1;
       });
       if (s > score) { score = s; best = it; }
     });
-    if (best && score > 0) {
-      addMsg(best.a, 'bot');
-      return;
+    if (best && score > 0) addMsg(best.a, 'bot');
+    else {
+      addMsg(pack.fallback, 'bot');
+      addQuick(pack.chips);
     }
-    addMsg(botT('fallback'), 'bot');
-    addQuick(botT('chips'));
   }
-
   if (botBtn && botBox) {
     botBtn.addEventListener('click', function () {
       botBox.classList.toggle('open');
       if (botBox.classList.contains('open') && botMsgs && !botMsgs.dataset.ready) {
         botMsgs.dataset.ready = '1';
-        addMsg(botT('hi'), 'bot');
-        addQuick(botT('chips'));
+        var pack = BOT[BOT_LANG] || BOT.fa;
+        addMsg(pack.hi, 'bot');
+        addQuick(pack.chips);
       }
     });
   }
@@ -241,7 +195,7 @@
       if (!v) return;
       addMsg(v, 'user');
       botInput.value = '';
-      setTimeout(function () { respond(v); }, 350);
+      setTimeout(function () { respond(v); }, 250);
     });
   }
 
