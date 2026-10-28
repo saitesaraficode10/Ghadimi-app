@@ -1,54 +1,61 @@
 <%- include('../partials/header') %>
-<a class="muted" href="/admin/requests">← لیست درخواست‌ها</a>
-<div class="two-col" style="margin-top:1rem">
+<div class="admin-top">
+  <a class="muted" href="/admin/requests">← لیست درخواست‌ها</a>
+  <button type="button" class="btn btn-primary" id="btnPrintReq">چاپ درخواست</button>
+</div>
+
+<div id="printArea" class="two-col" style="margin-top:1rem">
   <div class="panel stack">
     <h1 style="margin:0;font-size:1.2rem">درخواست <%= request.request_code %></h1>
     <p><span class="muted">ملک:</span> <%= request.title %> (<%= request.property_code %>)</p>
     <p><span class="muted">آدرس ملک:</span> <%= request.address || '—' %></p>
     <p><span class="muted">نام:</span> <%= request.full_name %></p>
-    <p><span class="muted">تلفن:</span> <%= request.phone %></p>
-    <p><span class="muted">واتساپ:</span> <%= request.whatsapp || '—' %></p>
+    <p><span class="muted">تلفن:</span> <span dir="ltr"><%= request.phone %></span></p>
+    <p><span class="muted">واتساپ:</span> <span dir="ltr"><%= request.whatsapp || '—' %></span></p>
     <p><span class="muted">نیاز از تاریخ:</span> <%= request.need_from %></p>
     <p><span class="muted">مدت اجاره:</span> <%= request.rent_duration %></p>
     <p><span class="muted">تعداد نفرات:</span> <%= request.people_count %></p>
     <p><span class="muted">پیام مشتری:</span> <%= request.message || '—' %></p>
-    <p><span class="muted">وضعیت فعلی:</span> <b><%= request.status %></b></p>
-    <p><span class="muted">زمان بازدید:</span> <%= request.visit_datetime || '—' %></p>
-    <p><span class="muted">محل بازدید:</span> <%= request.visit_location || '—' %></p>
+    <p><span class="muted">وضعیت فعلی:</span> <b><%= statusLabel(request.status) %></b></p>
+    <p><span class="muted">زمان بازدید:</span> <b><%= request.visit_datetime || '—' %></b></p>
+    <p><span class="muted">محل بازدید:</span> <b><%= request.visit_location || '—' %></b></p>
+    <% if (request.admin_note) { %><p><span class="muted">یادداشت:</span> <%= request.admin_note %></p><% } %>
   </div>
 
-  <form method="POST" action="/admin/requests/<%= request.id %>/update" class="panel stack">
+  <form method="POST" action="/admin/requests/<%= request.id %>/update" class="panel stack no-print">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <h2 style="margin:0">تأیید و تعیین زمان بازدید</h2>
-    <p class="muted" style="margin:0">وضعیت را «زمان بازدید تعیین شد» بگذار و تاریخ/ساعت و آدرس ملاقات را وارد کن.</p>
-
     <div>
       <label class="label">وضعیت درخواست</label>
       <select class="input" name="status">
-        <option value="pending" <%= request.status==='pending'?'selected':'' %>>در انتظار بررسی</option>
-        <option value="approved" <%= request.status==='approved'?'selected':'' %>>تأیید اولیه</option>
-        <option value="scheduled" <%= request.status==='scheduled'?'selected':'' %>>زمان بازدید تعیین شد</option>
-        <option value="rejected" <%= request.status==='rejected'?'selected':'' %>>رد شده</option>
-        <option value="done" <%= request.status==='done'?'selected':'' %>>بازدید انجام شد</option>
+        <option value="pending" <%= request.status==='pending'?'selected':'' %>><%= statusLabel('pending') %></option>
+        <option value="approved" <%= request.status==='approved'?'selected':'' %>><%= statusLabel('approved') %></option>
+        <option value="scheduled" <%= request.status==='scheduled'?'selected':'' %>><%= statusLabel('scheduled') %></option>
+        <option value="rejected" <%= request.status==='rejected'?'selected':'' %>><%= statusLabel('rejected') %></option>
+        <option value="completed" <%= request.status==='completed'||request.status==='done'?'selected':'' %>><%= statusLabel('completed') %></option>
       </select>
     </div>
-
     <div>
       <label class="label">تاریخ و ساعت بازدید</label>
-      <input class="input" type="datetime-local" name="visit_datetime" value="<%= request.visit_datetime || '' %>">
+      <input class="input date-input" type="datetime-local" name="visit_datetime" value="<%= request.visit_datetime || '' %>">
     </div>
-
     <div>
       <label class="label">محل ملاقات / آدرس بازدید</label>
-      <input class="input" name="visit_location" maxlength="200" placeholder="مثلاً جلوی درب ساختمان، خیابان ..." value="<%= request.visit_location || '' %>">
+      <input class="input" name="visit_location" maxlength="200" value="<%= request.visit_location || '' %>">
     </div>
-
     <div>
-      <label class="label">یادداشت داخلی ادمین</label>
+      <label class="label">پیام به مشتری (در اعلان دیده می‌شود)</label>
       <textarea class="input" name="admin_note" rows="3"><%= request.admin_note || '' %></textarea>
     </div>
-
     <button class="btn btn-primary" type="submit">ذخیره و اعلام به مشتری</button>
   </form>
 </div>
+<style>
+@media print {
+  .nav, .footer, .no-print, #chatBotBtn, #chatBotBox, .admin-top .btn-primary { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .panel { border: 1px solid #333 !important; box-shadow: none !important; }
+}
+</style>
+<script src="/js/print.js"></script>
 <%- include('../partials/footer') %>

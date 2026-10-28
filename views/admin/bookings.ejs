@@ -1,6 +1,11 @@
 <%- include('../partials/header') %>
 <div class="admin-top">
-  <h1 style="margin:0">رزروها</h1>
+  <form method="GET" action="/admin/bookings" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
+  <input class="input" name="q" value="<%= typeof q!=='undefined'?q:'' %>" placeholder="کد رزرو / کد ملک / نام / تلفن" style="min-width:14rem">
+  <button class="btn btn-primary" type="submit"><%= t('search') %></button>
+</form>
+<p class="muted"><%= t('booking_manage') %></p>
+<h1 style="margin:0">رزروها</h1>
   <a class="btn btn-ghost" href="/admin"><%= t('back') %></a>
 </div>
 <form method="POST" action="/admin/bookings/manual" class="panel stack" style="max-width:640px;margin:1rem 0">

@@ -7,9 +7,9 @@
 <form method="POST" enctype="multipart/form-data" class="panel stack" style="max-width:680px;margin-top:1rem">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <% if (!property) { %>
-    <div><label class="label">کد ملک *</label><input class="input" name="code" required maxlength="30" placeholder="A-101"></div>
+    <div><label class="label"><%= t('property_code') %> *</label><input class="input" name="code" required maxlength="30" placeholder="A-101"></div>
   <% } else { %>
-    <div><label class="label">کد ملک</label><input class="input" value="<%= property.code %>" disabled></div>
+    <div><label class="label"><%= t('property_code') %></label><input class="input" value="<%= property.code %>" disabled></div>
   <% } %>
   <div><label class="label">عنوان *</label><input class="input" name="title" required maxlength="120" value="<%= property ? property.title : '' %>"></div>
 

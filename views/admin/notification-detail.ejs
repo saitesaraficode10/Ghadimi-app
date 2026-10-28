@@ -1,0 +1,12 @@
+<%- include('../partials/header') %>
+<div class="admin-top">
+  <h1 style="margin:0">اعلان</h1>
+  <a class="btn btn-ghost" href="/admin/notifications"><%= t('back') %></a>
+</div>
+<div class="panel stack" style="margin-top:1rem;max-width:640px">
+  <h2 style="margin:0"><%= n.title %></h2>
+  <p style="white-space:pre-wrap;line-height:1.8"><%= n.body %></p>
+  <p class="muted"><%= n.created_at %></p>
+  <% if (n.link) { %><a class="btn btn-primary" href="<%= n.link %>">رفتن به بخش مرتبط</a><% } %>
+</div>
+<%- include('../partials/footer') %>
