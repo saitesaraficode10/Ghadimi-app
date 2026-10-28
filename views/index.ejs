@@ -106,11 +106,11 @@
   <% if (properties && properties.length) { properties.forEach(p => { %>
     <a class="prop-card" href="/property/<%= p.code %>">
       <div class="prop-img">
-        <img src="<%= p.cover_path || p.image_path || '/logo-ghadimi.png' %>" alt="<%= p.title %>" loading="lazy" onerror="this.src='/logo-ghadimi.png'">
+        <img src="<%= p.cover_path || p.image_path || '/logo-ghadimi.png' %>" alt="<%= locField(p, 'title') %>" loading="lazy" onerror="this.src='/logo-ghadimi.png'">
       </div>
       <div class="prop-body">
-        <div style="font-weight:700"><%= p.title %></div>
-        <div class="muted"><%= p.city %> · <%= p.rooms || '—' %> <%= t('rooms') %></div>
+        <div style="font-weight:700"><%= locField(p, 'title') %></div>
+        <div class="muted"><%= locField(p, 'city') || p.city %> · <%= p.rooms || '—' %> <%= t('rooms') %></div>
         <div style="color:var(--accent2);font-weight:800"><%= Number(p.price_monthly||0).toLocaleString() %> <%= p.currency || 'AMD' %></div>
         <div class="muted" style="font-size:0.75rem"><%= statusLabel(p.status || 'available') %> · <%= p.category || 'house' %></div>
       </div>

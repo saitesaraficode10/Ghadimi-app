@@ -2,8 +2,8 @@
 <div class="cpanel-wrap">
 <%- include('partials/user-side', { activeNav: 'bookings' }) %>
 <div class="cpanel-main">
-  <h1 style="margin-top:0"><%= t('book_title') %>: <%= property.title %></h1>
-  <p class="muted"><%= property.city %> · <%= Number(property.price_monthly).toLocaleString() %> <%= property.currency %></p>
+  <h1 style="margin-top:0"><%= t('book_title') %>: <%= locField(property, 'title') %></h1>
+  <p class="muted"><%= locField(property, 'city') || property.city %> · <%= Number(property.price_monthly).toLocaleString() %> <%= property.currency %></p>
   <% if (error) { %><div class="alert"><%= error %></div><% } %>
   <form method="POST" action="/book/<%= property.code %>" class="panel stack" style="max-width:560px" id="bookForm">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">

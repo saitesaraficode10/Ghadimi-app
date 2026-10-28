@@ -21,10 +21,10 @@
     <% } %>
     <div style="padding:1.25rem">
       <div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:start">
-        <h1 style="margin:0;font-size:1.35rem"><%= property.title %></h1>
+        <h1 style="margin:0;font-size:1.35rem"><%= locField(property, 'title') %></h1>
         <span class="badge <%= property.status==='available'?'badge-ok':'badge-warn' %>"><%= statusLabel(property.status) %></span>
       </div>
-      <p class="muted"><%= property.city %><% if (property.address) { %> · <%= property.address %><% } %></p>
+      <p class="muted"><%= locField(property, 'city') || property.city %><% if (property.address) { %> · <%= locField(property, 'address') || property.address %><% } %></p>
       <div class="price"><%= Number(property.price_monthly).toLocaleString('fa-IR') %> <%= property.currency %> / <%= t('monthly') %></div>
       <ul class="muted" style="line-height:1.9;padding-inline-start:1.1rem">
         <li><%= t('rooms') %>: <%= property.rooms || '-' %></li>
@@ -32,7 +32,7 @@
         <li><%= t('people_count') %>: <%= property.max_people || '-' %></li>
         <% if (property.status==='rented' && property.available_from) { %><li><%= property.available_from %></li><% } %>
       </ul>
-      <% if (property.description) { %><p style="line-height:1.85;font-size:0.95rem"><%= property.description %></p><% } %>
+      <% if (property.description) { %><p style="line-height:1.85;font-size:0.95rem"><%= locField(property, 'description') %></p><% } %>
       <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem">
         <% if (property.map_url) { %><a class="btn btn-ghost" href="<%= property.map_url %>" target="_blank" rel="noopener noreferrer"><%= t('map') %></a><% } %>
         <% if (property.contact_whatsapp) { %>

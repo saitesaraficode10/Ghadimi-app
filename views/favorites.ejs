@@ -8,7 +8,7 @@
     <a class="card" href="/property/<%= p.code %>">
       <% if (p.image_path) { %><img class="card-img" src="<%= p.image_path %>" alt=""><% } else { %><div class="card-img"></div><% } %>
       <div class="card-body">
-        <h2 style="margin:0;font-size:1.05rem"><%= p.title %></h2>
+        <h2 style="margin:0;font-size:1.05rem"><%= locField(p, 'title') %></h2>
         <p class="muted"><%= p.city %></p>
         <div class="price"><%= Number(p.price_monthly).toLocaleString('fa-IR') %> <%= p.currency %></div>
       </div>
