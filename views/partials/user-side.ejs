@@ -9,7 +9,7 @@
   <a href="/notifications" class="<%= typeof activeNav!=='undefined' && activeNav==='notifications'?'active':'' %>">
     <%= t('notifications') %>
     <% if (typeof unreadCount !== 'undefined' && unreadCount > 0) { %>
-      <span class="badge-count"><%= unreadCount > 99 ? '99+' : unreadCount %></span>
+      <span class="badge-count" data-role="user"><%= unreadCount > 99 ? '99+' : unreadCount %></span>
     <% } %>
   </a>
   <a href="/profile" class="<%= typeof activeNav!=='undefined' && activeNav==='profile'?'active':'' %>"><%= t('profile') %></a>
