@@ -176,6 +176,34 @@
     }
   ];
 
+  var BOT_LANG = (document.documentElement.lang || 'fa').slice(0, 2);
+  var BOT_I18N = {
+    fa: {
+      hi: 'سلام! من دستیار هوشمند املاک قدیمی هستم 🏠 از ثبت‌نام تا بازدید و رزرو راهنمایی می‌کنم.',
+      fallback: 'جزئیات کافی نبود. بپرسید: ثبت‌نام، ورود، بازدید، رزرو، قیمت، تماس.',
+      chips: ['ثبت‌نام', 'ورود', 'درخواست بازدید', 'رزرو ملک', 'تماس']
+    },
+    en: {
+      hi: 'Hi! I am Ghadimi assistant 🏠 I can help with signup, visit requests and booking.',
+      fallback: 'Need more detail. Ask about: signup, login, visit, booking, price, contact.',
+      chips: ['Sign up', 'Login', 'Visit request', 'Booking', 'Contact']
+    },
+    ru: {
+      hi: 'Здравствуйте! Я помощник Ghadimi 🏠 Помогу с регистрацией, визитом и бронью.',
+      fallback: 'Нужно больше деталей. Спросите: регистрация, вход, визит, бронь, цена, контакт.',
+      chips: ['Регистрация', 'Вход', 'Визит', 'Бронь', 'Контакт']
+    },
+    hy: {
+      hi: 'Բարև։ Ես Ghadimi օգնականն եմ 🏠 Կօգնեմ գրանցման, այցի և ամրագրման հարցերում։',
+      fallback: 'Ավելի շատ մանրամասներ են պետք։ Հարցրեք՝ գրանցում, մուտք, այց, ամրագրում, գին, կապ։',
+      chips: ['Գրանցում', 'Մուտք', 'Այց', 'Ամրագրում', 'Կապ']
+    }
+  };
+  function botT(key) {
+    var pack = BOT_I18N[BOT_LANG] || BOT_I18N.fa;
+    return pack[key] || BOT_I18N.fa[key] || key;
+  }
+
   function respond(raw) {
     var q = norm(raw);
     if (!q) return;
@@ -191,11 +219,8 @@
       addMsg(best.a, 'bot');
       return;
     }
-    addMsg(
-      'متوجه نیازتان شدم ولی جزئیات کافی نبود.\nمی‌توانید بپرسید: ثبت‌نام، ورود، بازدید، رزرو، قیمت، تماس، علاقه‌مندی.\nیا از صفحه «تماس» مستقیم با پشتیبانی واتساپ صحبت کنید.',
-      'bot'
-    );
-    addQuick(['ثبت‌نام', 'ورود', 'درخواست بازدید', 'تماس با پشتیبانی', 'رزرو ملک']);
+    addMsg(botT('fallback'), 'bot');
+    addQuick(botT('chips'));
   }
 
   if (botBtn && botBox) {
@@ -203,8 +228,8 @@
       botBox.classList.toggle('open');
       if (botBox.classList.contains('open') && botMsgs && !botMsgs.dataset.ready) {
         botMsgs.dataset.ready = '1';
-        addMsg('سلام! من دستیار هوشمند املاک قدیمی هستم 🏠\nاز ثبت‌نام تا بازدید و رزرو راهنمایی‌تان می‌کنم. یک گزینه را لمس کنید یا سؤال بنویسید.', 'bot');
-        addQuick(['ثبت‌نام', 'ورود به حساب', 'درخواست بازدید', 'قیمت اجاره', 'تماس / واتساپ']);
+        addMsg(botT('hi'), 'bot');
+        addQuick(botT('chips'));
       }
     });
   }
@@ -219,6 +244,28 @@
       setTimeout(function () { respond(v); }, 350);
     });
   }
+
+  // Live notification badges (no full page refresh)
+  function refreshBadges() {
+    fetch('/api/notifications/unread', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        document.querySelectorAll('.badge-count[data-role="user"]').forEach(function (el) {
+          var n = d.user || 0;
+          el.style.display = n > 0 ? 'inline-flex' : 'none';
+          el.textContent = n > 99 ? '99+' : String(n);
+        });
+        document.querySelectorAll('.badge-count[data-role="admin"]').forEach(function (el) {
+          var n = d.admin || 0;
+          el.style.display = n > 0 ? 'inline-flex' : 'none';
+          el.textContent = n > 99 ? '99+' : String(n);
+        });
+      }).catch(function () {});
+  }
+  try {
+    refreshBadges();
+    setInterval(refreshBadges, 12000);
+  } catch (e) {}
 
   // Presence heartbeat
   try {
