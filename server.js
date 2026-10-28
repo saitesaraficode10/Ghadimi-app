@@ -150,6 +150,37 @@ function t(lang, key) {
   return (translations[lang] && translations[lang][key]) || translations.fa[key] || key;
 }
 
+
+function formatDateTime(val, lang) {
+  if (!val) return '—';
+  const s = String(val).trim();
+  // datetime-local: 2026-10-30T06:20 or ISO with Z
+  let d = null;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) {
+    d = new Date(s.length === 16 ? s + ':00' : s);
+  } else if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    d = new Date(s);
+  } else {
+    d = new Date(s);
+  }
+  if (!d || isNaN(d.getTime())) {
+    // fallback: pretty print raw
+    return s.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
+  }
+  const pad = (n) => (n < 10 ? '0' : '') + n;
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  // Also jalali-ish simple display using same conversion as frontend approx not needed server-side
+  return y + '/' + m + '/' + day + '  ' + hh + ':' + mm;
+}
+
+function statusText(lang, s) {
+  return statusLabel(lang, s);
+}
+
 function statusLabel(lang, s) {
   const keys = new Set(['available','rented','reserved','pending','approved','rejected','completed','cancelled','pending_payment','paid','confirmed','scheduled','processing']);
   if (keys.has(s)) return t(lang, s);
@@ -216,6 +247,7 @@ app.use((req, res, next) => {
   res.locals.adminUnreadCount = 0;
   res.locals.dir = lang === 'fa' || lang === 'hy' ? 'rtl' : 'ltr';
   res.locals.statusLabel = (s) => statusLabel(lang, s);
+  res.locals.formatDateTime = (v) => formatDateTime(v, lang);
   next();
 });
 
@@ -260,18 +292,43 @@ app.get('/', optionalUser, (req, res) => {
   const { city = '', status = '', rooms = '', price_from = '', price_to = '', area_from = '', category = '', rent_period = '' } = req.query;
   let sql = 'SELECT * FROM properties WHERE 1=1';
   const params = [];
-  if (city) { sql += ' AND LOWER(COALESCE(city,"")) LIKE LOWER(?)'; params.push('%' + city.trim() + '%'); }
-  if (status) { sql += ' AND status = ?'; params.push(status); }
-  if (rooms) { sql += ' AND CAST(COALESCE(rooms,0) AS REAL) >= ?'; params.push(parseFloat(rooms) || 0); }
-  if (price_from) { sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) >= ?'; params.push(parseFloat(price_from) || 0); }
-  if (price_to) { sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) <= ?'; params.push(parseFloat(price_to) || 0); }
-  if (area_from) { sql += ' AND (area IS NULL OR CAST(area AS REAL) >= ?)'; params.push(parseFloat(area_from) || 0); }
-  if (category) { sql += " AND LOWER(COALESCE(category, 'house')) = LOWER(?)"; params.push(category); }
-  if (rent_period) { sql += ' AND (rent_period IS NULL OR rent_period = "" OR rent_period = ?)'; params.push(rent_period); }
+  if (city && String(city).trim()) {
+    sql += ' AND LOWER(COALESCE(city, \'\')) LIKE LOWER(?)';
+    params.push('%' + String(city).trim() + '%');
+  }
+  if (status && String(status).trim()) {
+    sql += ' AND status = ?';
+    params.push(String(status).trim());
+  }
+  if (rooms) {
+    sql += ' AND CAST(COALESCE(rooms,0) AS REAL) >= ?';
+    params.push(parseFloat(rooms) || 0);
+  }
+  if (price_from) {
+    sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) >= ?';
+    params.push(parseFloat(price_from) || 0);
+  }
+  if (price_to) {
+    sql += ' AND CAST(COALESCE(price_monthly,0) AS REAL) <= ?';
+    params.push(parseFloat(price_to) || 0);
+  }
+  if (area_from) {
+    sql += ' AND (area IS NULL OR CAST(area AS REAL) >= ?)';
+    params.push(parseFloat(area_from) || 0);
+  }
+  if (category && String(category).trim()) {
+    const cat = String(category).trim().toLowerCase();
+    sql += ' AND LOWER(TRIM(COALESCE(category, \'house\'))) = ?';
+    params.push(cat);
+  }
+  if (rent_period && String(rent_period).trim()) {
+    sql += ' AND (rent_period IS NULL OR rent_period = \'\' OR rent_period = ?)';
+    params.push(String(rent_period).trim());
+  }
   sql += ' ORDER BY created_at DESC';
   let properties = [];
   try { properties = db.prepare(sql).all(...params); } catch (e) {
-    console.error('filter', e.message);
+    console.error('filter', e.message, sql, params);
     try { properties = db.prepare('SELECT * FROM properties ORDER BY created_at DESC').all(); } catch (e2) {}
   }
   let favIds = new Set();
@@ -682,7 +739,11 @@ app.get('/admin/requests/:id', authAdmin, (req, res) => {
 
 app.post('/admin/requests/:id/update', authAdmin, (req, res) => {
   const status = sanitizeText(req.body.status, 30);
-  const visit_datetime = sanitizeText(req.body.visit_datetime, 40);
+  let visit_datetime = sanitizeText(req.body.visit_datetime, 40);
+  // normalize datetime-local to readable local format (no Z)
+  if (visit_datetime && visit_datetime.indexOf('T') !== -1) {
+    visit_datetime = visit_datetime.replace('T', ' ').slice(0, 16);
+  }
   const visit_location = sanitizeText(req.body.visit_location, 200);
   const admin_note = sanitizeText(req.body.admin_note, 1000);
   try {
@@ -696,9 +757,14 @@ app.post('/admin/requests/:id/update', authAdmin, (req, res) => {
   try {
     const vr = db.prepare('SELECT * FROM visit_requests WHERE id = ?').get(req.params.id);
     if (vr && vr.user_id) {
+      const st = statusLabel('fa', status);
+      const when = formatDateTime(visit_datetime, 'fa');
       let title = 'به‌روزرسانی درخواست بازدید';
-      let body = 'وضعیت: ' + (status || '') + (visit_datetime ? (' | زمان: ' + visit_datetime) : '') + (visit_location ? (' | مکان: ' + visit_location) : '');
+      let body = 'وضعیت: ' + st;
+      if (visit_datetime) body += ' | زمان: ' + when;
+      if (visit_location) body += ' | مکان: ' + visit_location;
       if (admin_note) body += ' | پیام ادمین: ' + admin_note;
+      // store structured-ish body; UI also formats
       notify(vr.user_id, title, body, '/my-requests');
     }
   } catch (e) { console.log('visit user notify', e.message); }
