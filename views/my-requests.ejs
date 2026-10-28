@@ -17,7 +17,7 @@
         <tr>
           <td><%= r.request_code %></td>
           <td><%= r.title %></td>
-          <td><%= r.need_from %></td>
+          <td><%= formatDateTime(r.need_from) %></td>
           <td><%= r.rent_duration %></td>
           <td><%= r.people_count %></td>
           <td><%= statusLabel(r.status) %></td>
