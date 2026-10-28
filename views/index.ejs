@@ -24,6 +24,30 @@
   <div class="stat-card"><b><%= typeof uniqueVisitors !== 'undefined' ? Number(uniqueVisitors).toLocaleString() : '—' %></b><span class="muted"><%= t('visitors') %></span></div>
 </div>
 
+
+<% if (!filters.category) { %>
+<div class="cat-gate" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:1rem 0 1.5rem">
+  <a class="panel cat-card" href="/?category=house" style="text-align:center;padding:1.5rem;text-decoration:none;color:inherit">
+    <div style="font-size:2rem">🏠</div>
+    <b style="font-size:1.15rem"><%= t('house') %></b>
+    <p class="muted" style="margin:0.4rem 0 0"><%= t('listings') %></p>
+  </a>
+  <a class="panel cat-card" href="/?category=shop" style="text-align:center;padding:1.5rem;text-decoration:none;color:inherit">
+    <div style="font-size:2rem">🏪</div>
+    <b style="font-size:1.15rem"><%= t('shop') %></b>
+    <p class="muted" style="margin:0.4rem 0 0"><%= t('listings') %></p>
+  </a>
+  <a class="panel cat-card" href="/?category=" style="text-align:center;padding:1.5rem;text-decoration:none;color:inherit">
+    <div style="font-size:2rem">📋</div>
+    <b style="font-size:1.15rem"><%= t('all') %></b>
+    <p class="muted" style="margin:0.4rem 0 0"><%= t('listings') %></p>
+  </a>
+</div>
+<% } else { %>
+<p class="muted"><%= t('category') %>: <b><%= filters.category==='shop' ? t('shop') : (filters.category==='house' ? t('house') : t('all')) %></b>
+  · <a href="/"><%= t('all') %></a></p>
+<% } %>
+
 <form class="filters panel" method="GET" style="margin:1rem 0;padding:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.5rem">
   <div>
     <label class="label"><%= t('city') %></label>

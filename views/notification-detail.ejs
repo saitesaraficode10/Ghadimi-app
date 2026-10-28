@@ -1,0 +1,16 @@
+<%- include('partials/header') %>
+<div class="cpanel-wrap">
+<%- include('partials/user-side', { activeNav: 'notifications' }) %>
+<div class="cpanel-main">
+  <div class="admin-top">
+    <h1 style="margin:0"><%= t('notifications') %></h1>
+    <a class="btn btn-ghost" href="/notifications"><%= t('back') %></a>
+  </div>
+  <div class="panel stack" style="margin-top:1rem;max-width:640px">
+    <h2 style="margin:0"><%= n.title %></h2>
+    <p style="white-space:pre-wrap;line-height:1.8"><%= n.body %></p>
+    <p class="muted" style="font-size:0.8rem"><%= n.created_at %></p>
+  </div>
+</div>
+</div>
+<%- include('partials/footer') %>

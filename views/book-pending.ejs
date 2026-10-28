@@ -11,19 +11,26 @@
   </div>
   <% } %>
   <p class="muted"><%= t('after_pay_hint') %></p>
-  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center">
-    <% if (typeof waDigits !== 'undefined' && waDigits) { %>
-      <a class="btn btn-primary" target="_blank" rel="noopener"
-         href="https://wa.me/<%= waDigits %>?text=<%= encodeURIComponent((booking.booking_code || '') ) %>"><%= t('send_receipt_wa') %></a>
-    <% } else { %>
-      <a class="btn btn-primary" href="/contact?booking=<%= booking.booking_code %>"><%= t('i_paid') %></a>
+  <div class="stack" style="gap:0.5rem">
+    <b><%= t('support') %></b>
+    <% var text = encodeURIComponent((booking.booking_code || '') + ' receipt'); %>
+    <% if (typeof wa1 !== 'undefined' && wa1) { %>
+      <a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/<%= wa1 %>?text=<%= text %>"><%= label1 || t('support') %> 1 — WhatsApp</a>
     <% } %>
+    <% if (typeof wa2 !== 'undefined' && wa2) { %>
+      <a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/<%= wa2 %>?text=<%= text %>"><%= label2 || t('support') %> 2 — WhatsApp</a>
+    <% } %>
+    <% if ((!wa1 && !wa2)) { %>
+      <a class="btn btn-primary" href="/contact"><%= t('contact') %></a>
+    <% } %>
+  </div>
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;margin-top:0.75rem">
     <form method="POST" action="/book/<%= booking.booking_code %>/cancel" style="margin:0">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <button class="btn btn-ghost" type="submit"><%= t('i_cancel') %></button>
     </form>
+    <a class="btn btn-ghost" href="/book/<%= booking.booking_code %>/receipt"><%= t('print_receipt') %></a>
+    <a class="btn btn-ghost" href="/my-bookings"><%= t('my_bookings') %></a>
   </div>
-  <a class="btn btn-ghost" href="/book/<%= booking.booking_code %>/receipt"><%= t('print_receipt') %></a>
-  <a class="btn btn-ghost" href="/my-bookings"><%= t('my_bookings') %></a>
 </div>
 <%- include('partials/footer') %>
