@@ -12,12 +12,12 @@
     <p><span class="muted">نام:</span> <%= request.full_name %></p>
     <p><span class="muted">تلفن:</span> <span dir="ltr"><%= request.phone %></span></p>
     <p><span class="muted">واتساپ:</span> <span dir="ltr"><%= request.whatsapp || '—' %></span></p>
-    <p><span class="muted">نیاز از تاریخ:</span> <%= request.need_from %></p>
+    <p><span class="muted">نیاز از تاریخ:</span> <%= formatDateTime(request.need_from) %></p>
     <p><span class="muted">مدت اجاره:</span> <%= request.rent_duration %></p>
     <p><span class="muted">تعداد نفرات:</span> <%= request.people_count %></p>
     <p><span class="muted">پیام مشتری:</span> <%= request.message || '—' %></p>
     <p><span class="muted">وضعیت فعلی:</span> <b><%= statusLabel(request.status) %></b></p>
-    <p><span class="muted">زمان بازدید:</span> <b><%= request.visit_datetime || '—' %></b></p>
+    <p><span class="muted">زمان بازدید:</span> <b><%= formatDateTime(request.visit_datetime) %></b></p>
     <p><span class="muted">محل بازدید:</span> <b><%= request.visit_location || '—' %></b></p>
     <% if (request.admin_note) { %><p><span class="muted">یادداشت:</span> <%= request.admin_note %></p><% } %>
   </div>

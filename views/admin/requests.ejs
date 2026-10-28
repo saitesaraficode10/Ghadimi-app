@@ -27,7 +27,7 @@
           <td class="p-3"><%= r.full_name %></td>
           <td class="p-3"><%= r.need_from %></td>
           <td class="p-3"><%= r.people_count %></td>
-          <td class="p-3"><%= r.status %></td>
+          <td class="p-3"><%= statusLabel(r.status) %></td>
         </tr>
       <% }) %>
     </tbody>
